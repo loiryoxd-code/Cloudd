@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Administración de Usuarios - SecureDocs{% endblock %}
+{% block header_title %}Consola de Gestión de Roles e Identidades{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+    <div class="p-6 rounded-2xl glass-panel border border-slate-800">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <h2 class="text-xl font-bold text-white flex items-center space-x-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block"></span>
+                    <span>Consola Restringida (Privilegio Crítico)</span>
+                </h2>
+                <p class="text-xs text-gray-400 mt-1">Este panel demuestra la mitigación de la vulnerabilidad Broken Access Control (A01:2021). Solo usuarios con rol "Administrador de Seguridad" pueden ver este listado.</p>
+            </div>
+            <span class="text-xs px-3 py-1.5 rounded-xl bg-red-950 bg-opacity-40 text-red-400 border border-red-900 border-opacity-30 font-semibold font-mono">
+                Rol actual: Administrador
+            </span>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="glass-panel rounded-2xl overflow-hidden border border-slate-800">
+        <table class="w-full text-left text-sm text-gray-400">
+            <thead class="bg-slate-900 bg-opacity-80 text-gray-400 text-xs font-bold uppercase tracking-wider border-b border-slate-800">
+                <tr>
+                    <th class="px-6 py-4">Usuario</th>
+                    <th class="px-6 py-4">Email</th>
+                    <th class="px-6 py-4">Rol Asignado</th>
+                    <th class="px-6 py-4">MFA Estado</th>
+                    <th class="px-6 py-4">Estado Cuenta</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800 bg-slate-950 bg-opacity-20">
+                {% for u in users_list %}
+                    <tr class="hover:bg-slate-900 hover:bg-opacity-35 transition">
+                        <td class="px-6 py-4 font-semibold text-white flex items-center space-x-3">
+                            <div class="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center font-bold text-indigo-400">
+                                {{ u.username|slice:":2"|upper }}
+                            </div>
+                            <span>{{ u.username }}</span>
+                        </td>
+                        <td class="px-6 py-4">{{ u.email|default:"[Sin registrar]" }}</td>
+                        <td class="px-6 py-4">
+                            {% if u.profile.role == 'admin' %}
+                                <span class="text-xs px-2.5 py-0.5 rounded-full bg-red-950 bg-opacity-50 text-red-400 border border-red-900 border-opacity-30 font-bold uppercase">
+                                    {{ u.profile.get_role_display }}
+                                </span>
+                            {% else %}
+                                <span class="text-xs px-2.5 py-0.5 rounded-full bg-indigo-950 bg-opacity-50 text-indigo-400 border border-indigo-900 border-opacity-30 font-bold uppercase">
+                                    {{ u.profile.get_role_display }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if u.profile.two_factor_enabled %}
+                                <span class="text-emerald-400 text-xs font-semibold flex items-center">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span> Activo
+                                </span>
+                            {% else %}
+                                <span class="text-gray-500 text-xs flex items-center">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-gray-600 mr-1.5"></span> Inactivo
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            {% if u.is_active %}
+                                <span class="text-emerald-500 text-xs font-semibold">Válida</span>
+                            {% else %}
+                                <span class="text-red-500 text-xs font-semibold">Desactivada</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bloqueo de Seguridad - SecureDocs</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #05070a;
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen text-slate-100 p-4">
+    <div class="max-w-md w-full bg-slate-900 border border-red-900 rounded-3xl p-8 text-center space-y-6 shadow-2xl">
+        <div class="w-16 h-16 rounded-full bg-red-950 bg-opacity-65 border border-red-800 flex items-center justify-center text-red-500 mx-auto animate-pulse">
+            <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+        </div>
+        
+        <div class="space-y-2">
+            <h1 class="text-2xl font-black text-white">Acceso Bloqueado</h1>
+            <p class="text-sm text-red-400 font-semibold uppercase tracking-wider">Alerta de Seguridad OWASP A07:2021</p>
+        </div>
+
+        <p class="text-sm text-gray-400 leading-relaxed font-light">
+            Se han detectado demasiados intentos de inicio de sesión fallidos desde esta dirección IP o para esta cuenta. Para mitigar ataques de fuerza bruta y adivinación de credenciales, el sistema ha bloqueado temporalmente el acceso.
+        </p>
+
+        <div class="p-4 bg-slate-950 rounded-xl border border-slate-800 border-opacity-60 text-xs text-left text-gray-500 space-y-1 font-mono">
+            <div>IP de origen: <span class="text-cyan-400 font-semibold">{{ ip_address|default:"Registro de Red" }}</span></div>
+            <div>Acción: Bloqueo de cortafuegos de aplicación</div>
+            <div>Enfriamiento: 10 Minutos</div>
+        </div>
+
+        <div class="pt-2">
+            <a href="/" class="inline-block px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 font-semibold text-gray-300 border border-slate-700 text-sm transition">
+                Volver al Inicio
+            </a>
+        </div>
+    </div>
+</body>
+</html>

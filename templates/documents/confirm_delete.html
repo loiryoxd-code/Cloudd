@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Borrar Evidencia - {{ document.title }}{% endblock %}
+{% block header_title %}Confirmación de Borrado Seguro{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto py-12">
+    <div class="p-8 rounded-3xl bg-slate-900 border border-red-950 rounded-3xl shadow-2xl space-y-6">
+        <div class="w-16 h-16 rounded-full bg-red-950 bg-opacity-65 border border-red-900 flex items-center justify-center text-red-500 mx-auto">
+            <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+        </div>
+
+        <div class="text-center space-y-2">
+            <h2 class="text-2xl font-black text-white">¿Borrar Evidencia?</h2>
+            <p class="text-xs text-red-400 font-bold uppercase tracking-wider">Esta acción es irreversible</p>
+        </div>
+
+        <p class="text-sm text-gray-400 text-center leading-relaxed font-light">
+            ¿Está seguro de que desea eliminar permanentemente el documento <span class="text-white font-semibold">"{{ document.title }}"</span> y su archivo físico asociado del almacenamiento seguro?
+        </p>
+
+        <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs font-mono text-gray-500 break-all text-center">
+            Hash: {{ document.file_hash|slice:":20" }}...{{ document.file_hash|slice:"-20:" }}
+        </div>
+
+        <!-- Deletion Form with CSRF Protection -->
+        <form method="POST" class="pt-2 flex justify-center space-x-4">
+            {% csrf_token %}
+            <a href="{% url 'documents:detail' document.pk %}" class="px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 font-semibold text-gray-300 border border-slate-700 text-sm transition">
+                Cancelar
+            </a>
+            <button type="submit" 
+                    class="px-6 py-2.5 rounded-xl bg-red-650 hover:bg-red-600 font-bold text-white text-sm shadow-lg transition">
+                Eliminar de verdad
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

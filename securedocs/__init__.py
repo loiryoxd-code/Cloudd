@@ -1,0 +1,1 @@
+# Securedocs Django project package.

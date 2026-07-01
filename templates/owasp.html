@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}OWASP Compliance Console - SecureDocs{% endblock %}
+{% block header_title %}Panel de Cumplimiento OWASP Top 10{% endblock %}
+
+{% block content %}
+<div class="space-y-8 max-w-6xl mx-auto">
+    <!-- Header Summary -->
+    <div class="p-6 rounded-2xl glass-panel relative overflow-hidden border border-indigo-950">
+        <h2 class="text-xl font-bold text-white flex items-center space-x-2">
+            <svg class="w-6 h-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            <span>Consola de Auditoría y Verificación</span>
+        </h2>
+        <p class="text-xs text-gray-400 mt-1">Este panel demuestra cómo la arquitectura de la aplicación SecureDocs previene activamente los riesgos del OWASP Top 10.</p>
+        
+        <!-- Environment Badges -->
+        <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="p-3 bg-slate-900 bg-opacity-60 rounded-xl border border-slate-800">
+                <div class="text-[10px] text-gray-500 font-bold uppercase">Base de Datos</div>
+                <div class="text-sm font-semibold text-white font-mono mt-0.5">{{ db_backend|slice:"19:"|default:"SQLite / OCI Prepared" }}</div>
+            </div>
+            <div class="p-3 bg-slate-900 bg-opacity-60 rounded-xl border border-slate-800">
+                <div class="text-[10px] text-gray-500 font-bold uppercase">Almacenamiento de Archivos</div>
+                <div class="text-sm font-semibold text-white font-mono mt-0.5">
+                    {% if storage_backend == 'django.core.files.storage.FileSystemStorage' %}Local Storage{% else %}Azure Blob{% endif %}
+                </div>
+            </div>
+            <div class="p-3 bg-slate-900 bg-opacity-60 rounded-xl border border-slate-800">
+                <div class="text-[10px] text-gray-500 font-bold uppercase">Fuerza Bruta (Axes)</div>
+                <div class="text-sm font-semibold {% if axes_enabled %}text-emerald-400{% else %}text-red-400{% endif %} mt-0.5">
+                    {% if axes_enabled %}Habilitado (5 lim){% else %}Deshabilitado{% endif %}
+                </div>
+            </div>
+            <div class="p-3 bg-slate-900 bg-opacity-60 rounded-xl border border-slate-800">
+                <div class="text-[10px] text-gray-500 font-bold uppercase">Cabecera CSP</div>
+                <div class="text-sm font-semibold text-emerald-400 mt-0.5">Activo (Strict)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- OWASP Checks List -->
+    <div class="space-y-4">
+        {% for check in checks %}
+            <div class="p-5 rounded-2xl glass-card border {% if check.status == 'PASSED' %}border-emerald-950 border-opacity-40 hover:border-emerald-800{% elif check.status == 'WARNING' %}border-yellow-950 border-opacity-45 hover:border-yellow-800{% else %}border-red-950 hover:border-red-900{% endif %}">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div class="flex items-center space-x-3">
+                        <!-- Status Indicators -->
+                        {% if check.status == 'PASSED' %}
+                            <div class="w-8 h-8 rounded-full bg-emerald-950 bg-opacity-60 flex items-center justify-center border border-emerald-800 text-emerald-400 flex-shrink-0">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                            </div>
+                        {% elif check.status == 'WARNING' %}
+                            <div class="w-8 h-8 rounded-full bg-yellow-950 bg-opacity-40 flex items-center justify-center border border-yellow-900 text-yellow-400 flex-shrink-0">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                            </div>
+                        {% else %}
+                            <div class="w-8 h-8 rounded-full bg-red-950 bg-opacity-40 flex items-center justify-center border border-red-900 text-red-400 flex-shrink-0">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </div>
+                        {% endif %}
+                        
+                        <div>
+                            <span class="text-xs font-mono font-bold text-gray-500 uppercase">{{ check.id }}</span>
+                            <h3 class="text-base font-bold text-white leading-tight">{{ check.title }}</h3>
+                        </div>
+                    </div>
+
+                    <!-- Action and status badges -->
+                    <div class="flex items-center space-x-3 self-end md:self-auto">
+                        {% if check.status == 'PASSED' %}
+                            <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-950 bg-opacity-60 text-emerald-400 border border-emerald-900 border-opacity-40 font-semibold uppercase">Cumplido</span>
+                        {% elif check.status == 'WARNING' %}
+                            <span class="text-xs px-2.5 py-0.5 rounded-full bg-yellow-950 bg-opacity-40 text-yellow-400 border border-yellow-900 border-opacity-40 font-semibold uppercase">Revisión</span>
+                        {% else %}
+                            <span class="text-xs px-2.5 py-0.5 rounded-full bg-red-950 bg-opacity-40 text-red-400 border border-red-900 border-opacity-40 font-semibold uppercase">Alerta</span>
+                        {% endif %}
+
+                        {% if check.test_url %}
+                            <a href="{{ check.test_url }}" class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold border border-slate-750">
+                                Probar
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Explanation details -->
+                <div class="mt-4 pl-11 text-sm text-gray-400 leading-relaxed font-light">
+                    {{ check.description }}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

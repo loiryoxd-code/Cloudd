@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}SecureDocs - Gestión Segura y Cumplimiento OWASP{% endblock %}
+{% block header_title %}Portal de Seguridad SecureDocs{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto py-12 px-4">
+    <!-- Hero Section -->
+    <div class="text-center mb-16 space-y-6">
+        <span class="px-4 py-1.5 rounded-full bg-indigo-950 bg-opacity-60 text-indigo-300 border border-indigo-800 text-xs font-semibold tracking-wider uppercase">
+            Asegurado con Estándares OWASP Top 10
+        </span>
+        <h2 class="text-4xl md:text-6xl font-black tracking-tight text-white leading-tight">
+            Gestione y Proteja sus <br>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-400">Documentos y Evidencias</span>
+        </h2>
+        <p class="text-lg text-gray-400 max-w-2xl mx-auto font-light">
+            SecureDocs es un portal seguro diseñado específicamente para albergar archivos sensibles, con almacenamiento en Azure Blobs, base de datos preparada para OCI Autonomous y cumplimiento visible de seguridad OWASP.
+        </p>
+        <div class="pt-4 flex justify-center space-x-4">
+            <a href="{% url 'register' %}" class="px-8 py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 font-semibold text-white shadow-lg transition duration-200">
+                Crear Cuenta Segura
+            </a>
+            <a href="{% url 'login' %}" class="px-8 py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 font-semibold text-gray-200 border border-slate-700 transition duration-200">
+                Iniciar Sesión
+            </a>
+        </div>
+    </div>
+
+    <!-- Security Pillars -->
+    <div class="grid md:grid-cols-3 gap-6 mb-16">
+        <div class="p-6 rounded-2xl glass-card space-y-4">
+            <div class="w-12 h-12 rounded-xl bg-indigo-950 bg-opacity-60 flex items-center justify-center border border-indigo-800">
+                <svg class="w-6 h-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+            </div>
+            <h3 class="text-xl font-bold text-white">Encriptación a Nivel de Celda</h3>
+            <p class="text-sm text-gray-400 font-light leading-relaxed">
+                Los metadatos sensibles y las notas de evidencias son cifradas en reposo utilizando el algoritmo simétrico Fernet (AES-128 en modo CBC) antes de tocar la base de datos.
+            </p>
+        </div>
+
+        <div class="p-6 rounded-2xl glass-card space-y-4">
+            <div class="w-12 h-12 rounded-xl bg-cyan-950 bg-opacity-60 flex items-center justify-center border border-cyan-800">
+                <svg class="w-6 h-6 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            </div>
+            <h3 class="text-xl font-bold text-white">Integridad de Datos</h3>
+            <p class="text-sm text-gray-400 font-light leading-relaxed">
+                Cada documento subido genera automáticamente un hash de verificación SHA-256. Esto asegura que la evidencia no ha sufrido alteraciones ni manipulaciones accidentales en el almacenamiento.
+            </p>
+        </div>
+
+        <div class="p-6 rounded-2xl glass-card space-y-4">
+            <div class="w-12 h-12 rounded-xl bg-purple-950 bg-opacity-60 flex items-center justify-center border border-purple-800">
+                <svg class="w-6 h-6 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            </div>
+            <h3 class="text-xl font-bold text-white">Control de Acceso Riguroso</h3>
+            <p class="text-sm text-gray-400 font-light leading-relaxed">
+                Se mitiga la vulnerabilidad de Broken Access Control (A01:2021) aislando los archivos de cada usuario en consultas separadas y entregándolos mediante URLs firmadas con caducidad corta.
+            </p>
+        </div>
+    </div>
+
+    <!-- Interactive Demonstration Section -->
+    <div class="p-8 rounded-3xl glass-panel text-center relative overflow-hidden border border-indigo-900 border-opacity-35">
+        <div class="absolute -right-10 -top-10 w-40 h-40 bg-indigo-500 bg-opacity-10 blur-3xl rounded-full"></div>
+        <div class="absolute -left-10 -bottom-10 w-40 h-40 bg-cyan-500 bg-opacity-10 blur-3xl rounded-full"></div>
+        
+        <h3 class="text-2xl font-extrabold text-white mb-4">¿Preparado para verificar el cumplimiento?</h3>
+        <p class="text-sm text-gray-400 max-w-xl mx-auto mb-6 leading-relaxed">
+            Inicia sesión con tu cuenta de administrador o usuario estándar y accede al panel de control interactivo OWASP Top 10 para evaluar el estado en tiempo real del cortafuegos de seguridad, directivas de cabeceras de red, cifrado e historial de logs.
+        </p>
+        <a href="{% url 'login' %}" class="inline-flex items-center space-x-2 px-6 py-3 rounded-xl bg-indigo-650 hover:bg-indigo-600 text-white font-medium transition duration-200">
+            <span>Ir a la Consola de Verificación</span>
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+        </a>
+    </div>
+</div>
+{% endblock %}
