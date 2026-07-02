@@ -9,6 +9,7 @@ from django.conf import settings
 
 from .models import SecurityAuditLog, UserProfile
 from .utils import log_security_event
+from .forms import UserProfileForm, UserRegistrationForm, UserLoginForm
 from documents.models import Document
 
 # 1. Landing View
@@ -48,25 +49,16 @@ def dashboard(request):
 @login_required
 def profile(request):
     if request.method == 'POST':
-        email = request.POST.get('email', '').strip()
-        first_name = request.POST.get('first_name', '').strip()
-        last_name = request.POST.get('last_name', '').strip()
-        two_factor = request.POST.get('two_factor') == 'on'
-        
-        # Simple Validation
-        user = request.user
-        user.email = email
-        user.first_name = first_name
-        user.last_name = last_name
-        user.save()
-        
-        profile = user.profile
-        profile.two_factor_enabled = two_factor
-        profile.save()
-        
-        log_security_event(request, 'PROFILE_UPDATE', f"Perfil de usuario '{user.username}' actualizado.")
-        messages.success(request, "Perfil actualizado con éxito.")
-        return redirect('profile')
+        form = UserProfileForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            log_security_event(request, 'PROFILE_UPDATE', f"Perfil de usuario '{request.user.username}' actualizado.")
+            messages.success(request, "Perfil actualizado con éxito.")
+            return redirect('profile')
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, error)
 
     return render(request, 'profile.html')
 
@@ -162,20 +154,25 @@ def login_view(request):
         return redirect('dashboard')
         
     if request.method == 'POST':
-        username = request.POST.get('username', '').strip()
-        password = request.POST.get('password', '')
-        
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            log_security_event(request, 'LOGIN_SUCCESS', f"Usuario '{username}' ha iniciado sesión exitosamente.")
-            messages.success(request, f"¡Bienvenido, {username}!")
-            return redirect('dashboard')
+        form = UserLoginForm(request.POST)
+        if form.is_valid():
+            username = form.cleaned_data['username']
+            password = form.cleaned_data['password']
+            user = authenticate(request, username=username, password=password)
+            if user is not None:
+                login(request, user)
+                log_security_event(request, 'LOGIN_SUCCESS', f"Usuario '{username}' ha iniciado sesión exitosamente.")
+                messages.success(request, f"¡Bienvenido, {username}!")
+                return redirect('dashboard')
+            else:
+                # Note: django-axes automatically records failure attempts,
+                # but we also write a security audit event
+                log_security_event(request, 'LOGIN_FAILURE', f"Intento fallido de inicio de sesión para el usuario '{username}'.", severity='WARNING')
+                messages.error(request, "Usuario o contraseña inválidos.")
         else:
-            # Note: django-axes automatically records failure attempts,
-            # but we also write a security audit event
-            log_security_event(request, 'LOGIN_FAILURE', f"Intento fallido de inicio de sesión para el usuario '{username}'.", severity='WARNING')
-            messages.error(request, "Usuario o contraseña inválidos.")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, error)
             
     return render(request, 'login.html')
 
@@ -193,32 +190,21 @@ def register_view(request):
         return redirect('dashboard')
         
     if request.method == 'POST':
-        username = request.POST.get('username', '').strip()
-        email = request.POST.get('email', '').strip()
-        password = request.POST.get('password', '')
-        password_confirm = request.POST.get('password_confirm', '')
-        
-        if password != password_confirm:
-            messages.error(request, "Las contraseñas no coinciden.")
-            return render(request, 'register.html')
+        form = UserRegistrationForm(request.POST)
+        if form.is_valid():
+            username = form.cleaned_data['username']
+            email = form.cleaned_data['email']
+            password = form.cleaned_data['password']
             
-        if User.objects.filter(username=username).exists():
-            messages.error(request, "El nombre de usuario ya está registrado.")
-            return render(request, 'register.html')
-            
-        # Password validation (OWASP A07:2021)
-        try:
-            validate_password(password)
-        except ValidationError as e:
-            for error in e.messages:
-                messages.error(request, error)
-            return render(request, 'register.html')
-            
-        # Create user
-        user = User.objects.create_user(username=username, email=email, password=password)
-        log_security_event(request, 'USER_REGISTER', f"Nuevo usuario '{username}' creado.", user=user)
-        messages.success(request, "Registro completado con éxito. Ahora puedes iniciar sesión.")
-        return redirect('login')
+            # Create user
+            user = User.objects.create_user(username=username, email=email, password=password)
+            log_security_event(request, 'USER_REGISTER', f"Nuevo usuario '{username}' creado.", user=user)
+            messages.success(request, "Registro completado con éxito. Ahora puedes iniciar sesión.")
+            return redirect('login')
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, error)
         
     return render(request, 'register.html')
 

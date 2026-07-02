@@ -1,17 +1,21 @@
 import os
 from pathlib import Path
-import environ
+import dotenv
 
 # Initialize environment variables
 BASE_DIR = Path(__file__).resolve().parent.parent
-env = environ.Env()
+
 # Read .env file if it exists
-environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+dotenv.load_dotenv(os.path.join(BASE_DIR, '.env'))
 
-SECRET_KEY = env('SECRET_KEY', default='django-insecure-change-me-in-production')
-DEBUG = env.bool('DEBUG', default=True)
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-me-in-production')
+DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 't')
 
-ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['*'])
+allowed_hosts_env = os.getenv('ALLOWED_HOSTS')
+if allowed_hosts_env:
+    ALLOWED_HOSTS = [h.strip() for h in allowed_hosts_env.split(',') if h.strip()]
+else:
+    ALLOWED_HOSTS = ['*']
 
 # Application definition
 INSTALLED_APPS = [
@@ -64,10 +68,35 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'securedocs.wsgi.application'
 
-# Database Configuration (OCI Autonomous AI DB / PostgreSQL / SQLite)
-DATABASES = {
-    'default': env.db('DATABASE_URL', default=f"sqlite:///{os.path.join(BASE_DIR, 'db.sqlite3')}")
-}
+# Database Configuration (OCI Autonomous Database / SQLite Fallback)
+# If OCI environment variables are present, connect to Oracle, else fall back to local SQLite.
+oci_db_name = os.getenv('OCI_DB_NAME')
+oci_db_user = os.getenv('OCI_DB_USER')
+oci_db_password = os.getenv('OCI_DB_PASSWORD')
+oci_wallet_dir = os.getenv('OCI_WALLET_DIR')
+oci_wallet_password = os.getenv('OCI_WALLET_PASSWORD')
+
+if oci_db_name and oci_db_user and oci_db_password:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.oracle',
+            'NAME': oci_db_name,
+            'USER': oci_db_user,
+            'PASSWORD': oci_db_password,
+            'OPTIONS': {
+                'config_dir': oci_wallet_dir,
+                'wallet_location': oci_wallet_dir,
+                'wallet_password': oci_wallet_password,
+            },
+        }
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        }
+    }
 
 # Password validation (OWASP A07:2021 mitigation)
 AUTH_PASSWORD_VALIDATORS = [
@@ -101,47 +130,86 @@ TIME_ZONE = 'America/Santiago'
 USE_I18N = True
 USE_TZ = True
 
-# Static files (CSS, JavaScript, Images)
-STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+# Static files directories
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
 
 # Storage Configuration (Azure Blob Storage with local fallback)
-# Enables seamless hybrid deployments
-AZURE_ACCOUNT_NAME = env('AZURE_ACCOUNT_NAME', default='')
-AZURE_ACCOUNT_KEY = env('AZURE_ACCOUNT_KEY', default='')
-AZURE_CONTAINER = env('AZURE_CONTAINER', default='')
+# Enables seamless hybrid deployments with Django 4.2+ STORAGES setting
+AZURE_ACCOUNT_NAME = os.getenv('AZURE_ACCOUNT_NAME')
+AZURE_ACCOUNT_KEY = os.getenv('AZURE_ACCOUNT_KEY')
+AZURE_CONNECTION_STRING = os.getenv('AZURE_CONNECTION_STRING')
+AZURE_CONTAINER_MEDIA = os.getenv('AZURE_CONTAINER_MEDIA')
+AZURE_CONTAINER_STATIC = os.getenv('AZURE_CONTAINER_STATIC')
 
-if AZURE_ACCOUNT_NAME and AZURE_ACCOUNT_KEY:
-    DEFAULT_FILE_STORAGE = 'storages.backends.azure_storage.AzureStorage'
+if AZURE_ACCOUNT_NAME and AZURE_ACCOUNT_KEY and AZURE_CONTAINER_MEDIA and AZURE_CONTAINER_STATIC:
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.azure_storage.AzureStorage",
+            "OPTIONS": {
+                "account_name": AZURE_ACCOUNT_NAME,
+                "account_key": AZURE_ACCOUNT_KEY,
+                "connection_string": AZURE_CONNECTION_STRING,
+                "azure_container": AZURE_CONTAINER_MEDIA,
+            },
+        },
+        "staticfiles": {
+            "BACKEND": "storages.backends.azure_storage.AzureStorage",
+            "OPTIONS": {
+                "account_name": AZURE_ACCOUNT_NAME,
+                "account_key": AZURE_ACCOUNT_KEY,
+                "connection_string": AZURE_CONNECTION_STRING,
+                "azure_container": AZURE_CONTAINER_STATIC,
+            },
+        },
+    }
     AZURE_SSL = True
     AZURE_OVERWRITE_FILES = False
-    # If the user defines custom domain or parameters:
-    # AZURE_CUSTOM_DOMAIN = f"{AZURE_ACCOUNT_NAME}.blob.core.windows.net"
+    STATIC_URL = f"https://{AZURE_ACCOUNT_NAME}.blob.core.windows.net/{AZURE_CONTAINER_STATIC}/"
+    MEDIA_URL = f"https://{AZURE_ACCOUNT_NAME}.blob.core.windows.net/{AZURE_CONTAINER_MEDIA}/"
 else:
-    DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        },
+    }
+    STATIC_URL = 'static/'
     MEDIA_URL = '/media/'
-    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Define roots for fallback and local file handling
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Authentication urls configuration
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'landing'
 
-# OWASP Security Toggles and environment details
-SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=False)
-SESSION_COOKIE_SECURE = env.bool('SESSION_COOKIE_SECURE', default=False)
-CSRF_COOKIE_SECURE = env.bool('CSRF_COOKIE_SECURE', default=False)
+# OWASP Security Toggles and environment details (configured for HTTP first)
+SECURE_SSL_REDIRECT = os.getenv('SECURE_SSL_REDIRECT', 'False').lower() in ('true', '1', 't')
+SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', 'False').lower() in ('true', '1', 't')
+CSRF_COOKIE_SECURE = os.getenv('CSRF_COOKIE_SECURE', 'False').lower() in ('true', '1', 't')
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "DENY"
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = False
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SECURE_REFERRER_POLICY = "same-origin"
 
 # CSRF Settings
-CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=['http://127.0.0.1:8000', 'http://localhost:8000'])
+csrf_origins_env = os.getenv('CSRF_TRUSTED_ORIGINS')
+if csrf_origins_env:
+    CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_origins_env.split(',') if origin.strip()]
+else:
+    CSRF_TRUSTED_ORIGINS = ['http://127.0.0.1:8000', 'http://localhost:8000']
 
 # Rate Limiting (Axes) (OWASP A07:2021)
-AXES_ENABLED = env.bool('AXES_ENABLED', default=True)
+AXES_ENABLED = os.getenv('AXES_ENABLED', 'True').lower() in ('true', '1', 't')
 AXES_FAILURE_LIMIT = 5  # Lock out user after 5 failed attempts
 AXES_COOLOFF_TIME = 10  # Wait 10 minutes before cooldown
 AXES_LOCKOUT_TEMPLATE = 'lockout.html'
@@ -149,7 +217,7 @@ AXES_LOCKOUT_PARAMETERS = ['username', 'ip_address']
 AXES_RESET_ON_SUCCESS = True
 
 # Cryptographic Keys (OWASP A02:2021)
-ENCRYPTION_KEY = env('ENCRYPTION_KEY', default='3r0vPzI9G2hK5-aXmR8oD7fC9uV1wY4zL2xJ7hG4bQ0=')
+ENCRYPTION_KEY = os.getenv('ENCRYPTION_KEY', '3r0vPzI9G2hK5-aXmR8oD7fC9uV1wY4zL2xJ7hG4bQ0=')
 
 # Django Default Auto Field
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

@@ -1,0 +1,26 @@
+# Environment files
+.env
+
+# Virtual environment
+venv/
+ENV/
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local Database
+db.sqlite3
+
+# Django static and media fallbacks
+staticfiles/
+media/
+
+# Oracle OCI Wallet configuration folder and certificates
+wallet/
+*.pem
+*.sso
+*.ora
+pkcs12/
