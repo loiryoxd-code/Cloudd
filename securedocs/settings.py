@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     
     # Third party
+    'storages',
     'axes',
     
     # Local Apps
@@ -139,7 +140,6 @@ STATICFILES_DIRS = [
 # Enables seamless hybrid deployments with Django 4.2+ STORAGES setting
 AZURE_ACCOUNT_NAME = os.getenv('AZURE_ACCOUNT_NAME')
 AZURE_ACCOUNT_KEY = os.getenv('AZURE_ACCOUNT_KEY')
-AZURE_CONNECTION_STRING = os.getenv('AZURE_CONNECTION_STRING')
 AZURE_CONTAINER_MEDIA = os.getenv('AZURE_CONTAINER_MEDIA')
 AZURE_CONTAINER_STATIC = os.getenv('AZURE_CONTAINER_STATIC')
 
@@ -150,7 +150,6 @@ if AZURE_ACCOUNT_NAME and AZURE_ACCOUNT_KEY and AZURE_CONTAINER_MEDIA and AZURE_
             "OPTIONS": {
                 "account_name": AZURE_ACCOUNT_NAME,
                 "account_key": AZURE_ACCOUNT_KEY,
-                "connection_string": AZURE_CONNECTION_STRING,
                 "azure_container": AZURE_CONTAINER_MEDIA,
             },
         },
@@ -159,7 +158,6 @@ if AZURE_ACCOUNT_NAME and AZURE_ACCOUNT_KEY and AZURE_CONTAINER_MEDIA and AZURE_
             "OPTIONS": {
                 "account_name": AZURE_ACCOUNT_NAME,
                 "account_key": AZURE_ACCOUNT_KEY,
-                "connection_string": AZURE_CONNECTION_STRING,
                 "azure_container": AZURE_CONTAINER_STATIC,
             },
         },

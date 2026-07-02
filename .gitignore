@@ -24,3 +24,7 @@ wallet/
 *.sso
 *.ora
 pkcs12/
+
+.env
+
+.env
