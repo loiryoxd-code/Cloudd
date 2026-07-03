@@ -63,7 +63,7 @@
             </h3>
             
             <div id="preview-container" class="p-6 rounded-xl bg-slate-900 bg-opacity-65 border border-slate-800 flex flex-col items-center justify-center min-h-[220px]">
-                {% if document.signature_image %}
+                {% if is_authorized %}
                     {% if "image" in document.content_type %}
                         <img src="{% url 'documents:preview' document.pk %}" alt="{{ document.title }}" class="max-h-96 rounded-lg object-contain shadow-2xl border border-slate-850 bg-slate-950 p-1">
                     {% elif "pdf" in document.content_type %}
@@ -84,11 +84,15 @@
                             </svg>
                         </div>
                         <h4 class="font-bold text-white text-sm">Vista previa protegida</h4>
-                        <p class="text-xs text-gray-400 max-w-sm mx-auto">Esta evidencia requiere tu firma de conformidad manuscrita para autorizar el desbloqueo.</p>
+                        {% if document.signature_image %}
+                            <p class="text-xs text-gray-400 max-w-sm mx-auto">La evidencia tiene una firma registrada, pero la autorización temporal expiró. Valida tu firma nuevamente para desbloquearla.</p>
+                        {% else %}
+                            <p class="text-xs text-gray-400 max-w-sm mx-auto">Esta evidencia requiere tu firma de conformidad manuscrita para autorizar el desbloqueo.</p>
+                        {% endif %}
                         <div class="pt-3">
                             <button id="btn-show-signature-modal" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 font-bold text-white text-xs shadow-md transition duration-200 flex items-center space-x-2 mx-auto">
                                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                                <span>Ver Vista Previa</span>
+                                <span>{% if document.signature_image %}Autorizar Visualización{% else %}Firmar y Ver Vista Previa{% endif %}</span>
                             </button>
                         </div>
                     </div>
@@ -144,8 +148,10 @@
                             </span>
                         </div>
                         <div id="signature-img-container" class="p-3 bg-slate-950 rounded-lg border border-slate-850 flex items-center justify-center min-h-[68px]">
-                            {% if document.signature_image %}
+                            {% if is_authorized %}
                                 <img src="{% url 'documents:signature_preview' document.pk %}" alt="Firma Autorizada" class="max-h-14 object-contain">
+                            {% elif document.signature_image %}
+                                <span class="text-xs text-indigo-400 italic">Firma registrada (requiere re-autorización)</span>
                             {% else %}
                                 <span class="text-xs text-gray-500 italic">No se registró firma manuscrita.</span>
                             {% endif %}

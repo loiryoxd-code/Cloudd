@@ -33,12 +33,16 @@ def document_detail(request, pk):
         )
         raise PermissionDenied("No tienes autorización para ver esta evidencia.")
 
-    # Decrypt sensitive metadata
-    decrypted_notes = document.decrypt_notes()
+    # Check temporal preview authorization (valid for 120 seconds / 2 minutes)
+    import time
+    authorized_previews = request.session.get('authorized_previews', {})
+    auth_time = authorized_previews.get(str(pk), 0)
+    is_authorized = (time.time() - auth_time) < 120
 
     context = {
         'document': document,
         'decrypted_notes': decrypted_notes,
+        'is_authorized': is_authorized,
     }
     return render(request, 'documents/detail.html', context)
 
@@ -68,6 +72,14 @@ def document_create(request):
                     pass
 
             document.save()
+            
+            # Authorize temporal preview in session if signed on upload
+            if document.signature_image:
+                import time
+                authorized_previews = request.session.get('authorized_previews', {})
+                authorized_previews[str(document.pk)] = time.time()
+                request.session['authorized_previews'] = authorized_previews
+                request.session.modified = True
             
             log_security_event(
                 request, 
@@ -126,6 +138,14 @@ def document_update(request, pk):
                     pass
 
             updated_doc.save()
+            
+            # Authorize temporal preview in session if signed on update
+            if updated_doc.signature_image:
+                import time
+                authorized_previews = request.session.get('authorized_previews', {})
+                authorized_previews[str(updated_doc.pk)] = time.time()
+                request.session['authorized_previews'] = authorized_previews
+                request.session.modified = True
             
             log_security_event(
                 request, 
@@ -248,6 +268,19 @@ def document_preview(request, pk):
         )
         raise PermissionDenied("Evidencia protegida pendiente de validación.")
 
+    # Check temporal preview authorization (valid for 120 seconds / 2 minutes)
+    import time
+    authorized_previews = request.session.get('authorized_previews', {})
+    auth_time = authorized_previews.get(str(pk), 0)
+    if (time.time() - auth_time) >= 120:
+        log_security_event(
+            request, 
+            'UNAUTHORIZED_PREVIEW_EXPIRED', 
+            f"El usuario '{request.user.username}' intentó previsualizar el archivo ID {pk} pero la autorización temporal expiró.", 
+            severity='WARNING'
+        )
+        raise PermissionDenied("Autorización temporal expirada. Debe firmar nuevamente para ver la evidencia.")
+
     log_security_event(
         request, 
         'DOCUMENT_PREVIEW', 
@@ -280,6 +313,13 @@ def signature_preview(request, pk):
 
     if not document.signature_image:
         raise Http404("No hay firma manuscrita para este documento.")
+
+    # Check temporal preview authorization (valid for 120 seconds / 2 minutes)
+    import time
+    authorized_previews = request.session.get('authorized_previews', {})
+    auth_time = authorized_previews.get(str(pk), 0)
+    if (time.time() - auth_time) >= 120:
+        raise PermissionDenied("Autorización temporal expirada. Debe firmar nuevamente.")
 
     try:
         file_obj = document.signature_image.open('rb')
@@ -335,6 +375,12 @@ def document_validate_signature(request, pk):
             document.signature_image = file_data
             document.save()
             
+            # Authorize temporal preview in session for 120 seconds
+            authorized_previews = request.session.get('authorized_previews', {})
+            authorized_previews[str(pk)] = time.time()
+            request.session['authorized_previews'] = authorized_previews
+            request.session.modified = True
+
             log_security_event(
                 request, 
                 'SIGNATURE_VALIDATED', 

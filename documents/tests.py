@@ -56,15 +56,34 @@ class DocumentSignatureAndPreviewTests(TestCase):
         response = self.client.get(reverse('documents:preview', args=[doc.pk]))
         self.assertEqual(response.status_code, 403)
         
-        # 2. Add signature, now Owner can access preview and it's inline
+        # 2. Add signature, but not authorized in session yet
         doc.signature_image = SimpleUploadedFile("sig.png", b"sig_data", content_type="image/png")
         doc.save()
+        response = self.client.get(reverse('documents:preview', args=[doc.pk]))
+        self.assertEqual(response.status_code, 403)
+
+        # 3. Authorize in session, now Owner can access preview and it's inline
+        import time
+        session = self.client.session
+        session['authorized_previews'] = {str(doc.pk): time.time()}
+        session.save()
         response = self.client.get(reverse('documents:preview', args=[doc.pk]))
         self.assertEqual(response.status_code, 200)
         self.assertIn('inline', response['Content-Disposition'])
         
-        # 3. Other logged-in user cannot access preview even if signed
+        # 4. Test expiration: set authorization time to 3 minutes ago
+        session = self.client.session
+        session['authorized_previews'] = {str(doc.pk): time.time() - 180}
+        session.save()
+        response = self.client.get(reverse('documents:preview', args=[doc.pk]))
+        self.assertEqual(response.status_code, 403)
+
+        # 5. Other logged-in user cannot access preview even if authorized in owner's session
         self.client.force_login(self.other_user)
+        # Restore active session timestamp for other_user (who shouldn't be allowed anyway)
+        session = self.client.session
+        session['authorized_previews'] = {str(doc.pk): time.time()}
+        session.save()
         response = self.client.get(reverse('documents:preview', args=[doc.pk]))
         self.assertEqual(response.status_code, 403)
 
@@ -77,15 +96,26 @@ class DocumentSignatureAndPreviewTests(TestCase):
             signature_image=SimpleUploadedFile("sig.png", b"signature_png_data", content_type="image/png")
         )
         
-        # 1. Owner can access signature preview and it is inline
+        # 1. Owner cannot access signature preview if not authorized in session
         self.client.force_login(self.owner)
+        response = self.client.get(reverse('documents:signature_preview', args=[doc.pk]))
+        self.assertEqual(response.status_code, 403)
+
+        # 2. Owner can access signature preview when authorized in session
+        import time
+        session = self.client.session
+        session['authorized_previews'] = {str(doc.pk): time.time()}
+        session.save()
         response = self.client.get(reverse('documents:signature_preview', args=[doc.pk]))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'image/png')
         self.assertIn('inline', response['Content-Disposition'])
         
-        # 2. Other user cannot access signature preview (Broken Access Control Prevention)
+        # 3. Other user cannot access signature preview even if authorized in their own session
         self.client.force_login(self.other_user)
+        session = self.client.session
+        session['authorized_previews'] = {str(doc.pk): time.time()}
+        session.save()
         response = self.client.get(reverse('documents:signature_preview', args=[doc.pk]))
         self.assertEqual(response.status_code, 403)
 
