@@ -33,9 +33,14 @@ def document_detail(request, pk):
         )
         raise PermissionDenied("No tienes autorización para ver esta evidencia.")
 
+    # Decrypt sensitive metadata
+    decrypted_notes = document.decrypt_notes()
+
     # Check temporal preview authorization (valid for 120 seconds / 2 minutes)
     import time
     authorized_previews = request.session.get('authorized_previews', {})
+    if not isinstance(authorized_previews, dict):
+        authorized_previews = {}
     auth_time = authorized_previews.get(str(pk), 0)
     is_authorized = (time.time() - auth_time) < 120
 
