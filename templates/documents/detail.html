@@ -59,52 +59,35 @@
         <div class="space-y-3">
             <h3 class="font-bold text-sm text-white flex items-center space-x-2">
                 <svg class="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                <span>Vista Previa Segura de la Evidencia</span>
+                <span>Previsualización de la Evidencia</span>
             </h3>
             
-            <div class="p-4 rounded-xl bg-slate-900 bg-opacity-65 border border-slate-800 flex flex-col items-center justify-center min-h-40">
-                {% if not document.signature_image %}
-                    <!-- Censored/Locked State -->
-                    <div class="text-center py-8 space-y-3 w-full max-w-md">
-                        <div class="relative inline-block">
-                            <!-- Locked icon backdrop -->
-                            <div class="w-16 h-16 rounded-2xl bg-yellow-950 bg-opacity-40 border border-yellow-900 border-opacity-40 flex items-center justify-center text-yellow-400 mx-auto animate-pulse">
-                                <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                                </svg>
-                            </div>
-                        </div>
-                        <h4 class="font-bold text-white text-sm">Evidencia protegida pendiente de validación</h4>
-                        <p class="text-xs text-gray-400">Esta evidencia requiere tu firma manuscrita para desbloquear la previsualización interactiva y verificar su conformidad.</p>
-                        <div class="pt-2">
-                            <a href="{% url 'documents:update' document.pk %}" class="inline-flex items-center space-x-1 px-4 py-2 bg-indigo-950 bg-opacity-50 hover:bg-opacity-80 border border-indigo-900 border-opacity-40 hover:border-indigo-800 text-xs text-indigo-300 font-semibold rounded-lg transition">
-                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                                <span>Firmar y Validar Evidencia</span>
-                            </a>
-                        </div>
+            <div id="preview-container" class="p-6 rounded-xl bg-slate-900 bg-opacity-65 border border-slate-800 flex flex-col items-center justify-center min-h-[220px]">
+                <div class="text-center py-4 space-y-3">
+                    <div class="w-12 h-12 rounded-xl bg-indigo-950 bg-opacity-40 border border-indigo-900 border-opacity-40 flex items-center justify-center text-indigo-400 mx-auto animate-pulse">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                        </svg>
                     </div>
-                {% else %}
-                    {% if document.content_type|slice:":6" == "image/" or document.file.name|slice:"-4:" == ".png" or document.file.name|slice:"-4:" == ".jpg" or document.file.name|slice:"-5:" == ".jpeg" %}
-                        <img src="{% url 'documents:preview' document.pk %}" alt="{{ document.title }}" class="max-h-96 rounded-lg object-contain shadow-2xl border border-slate-850 bg-slate-950 p-1">
-                    {% elif document.content_type == "application/pdf" or document.file.name|slice:"-4:" == ".pdf" %}
-                        <iframe src="{% url 'documents:preview' document.pk %}" class="w-full h-[450px] rounded-lg border border-slate-850" frameborder="0"></iframe>
-                    {% else %}
-                        <div class="text-center py-6">
-                            <svg class="w-12 h-12 text-slate-600 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                            </svg>
-                            <p class="text-xs text-gray-500 italic">Vista previa no disponible para archivos tipo {{ document.content_type|default:"desconocido" }}.</p>
-                            <p class="text-[10px] text-gray-600 mt-1">Usa el botón de descarga segura al final para ver este recurso.</p>
-                        </div>
-                    {% endif %}
-                {% endif %}
+                    <h4 class="font-bold text-white text-sm">Vista previa protegida</h4>
+                    <p class="text-xs text-gray-400 max-w-sm mx-auto">Esta evidencia requiere tu firma de conformidad manuscrita para autorizar el desbloqueo.</p>
+                    <div class="pt-3">
+                        <button id="btn-show-signature-modal" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 font-bold text-white text-xs shadow-md transition duration-200 flex items-center space-x-2 mx-auto">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                            <span>Ver Vista Previa</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- File Properties / Integrity Parameters (OWASP A08:2021) -->
+        <!-- Metadata Grid -->
         <div class="space-y-4">
-            <h3 class="font-bold text-sm text-white">Metadatos de Integridad del Archivo</h3>
-            
+            <h3 class="font-bold text-sm text-white flex items-center space-x-2">
+                <svg class="w-4 h-4 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                <span>Metadatos de Integridad del Archivo</span>
+            </h3>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="p-4 rounded-xl bg-slate-900 bg-opacity-65 border border-slate-800 flex items-center justify-between">
                     <div>
@@ -141,13 +124,11 @@
                     <div class="space-y-2">
                         <div class="flex items-center justify-between">
                             <span class="text-[10px] text-gray-500 font-bold uppercase">Autorización (Firma Manuscrita)</span>
-                            {% if document.signature_image %}
-                                <span class="text-[10px] text-indigo-400 font-bold uppercase bg-indigo-950 bg-opacity-40 px-2 py-0.5 rounded border border-indigo-900 border-opacity-35">Registrada</span>
-                            {% else %}
-                                <span class="text-[10px] text-yellow-400 font-bold uppercase bg-yellow-950 bg-opacity-40 px-2 py-0.5 rounded border border-yellow-900 border-opacity-35">Sin Firma</span>
-                            {% endif %}
+                            <span id="signature-status-badge" class="{% if document.signature_image %}text-[10px] text-indigo-400 font-bold uppercase bg-indigo-950 bg-opacity-40 px-2 py-0.5 rounded border border-indigo-900 border-opacity-35{% else %}text-[10px] text-yellow-400 font-bold uppercase bg-yellow-950 bg-opacity-40 px-2 py-0.5 rounded border border-yellow-900 border-opacity-35{% endif %}">
+                                {% if document.signature_image %}Registrada{% else %}Sin Firma{% endif %}
+                            </span>
                         </div>
-                        <div class="p-3 bg-slate-950 rounded-lg border border-slate-850 flex items-center justify-center min-h-[68px]">
+                        <div id="signature-img-container" class="p-3 bg-slate-950 rounded-lg border border-slate-850 flex items-center justify-center min-h-[68px]">
                             {% if document.signature_image %}
                                 <img src="{% url 'documents:signature_preview' document.pk %}" alt="Firma Autorizada" class="max-h-14 object-contain">
                             {% else %}
@@ -155,22 +136,221 @@
                             {% endif %}
                         </div>
                     </div>
-                    <p class="text-[10px] text-gray-500">Representa la validación del usuario emisor capturada mediante canvas de dibujo al subir la evidencia.</p>
+                    <p class="text-[10px] text-gray-500">Representa la validación del usuario emisor capturada mediante canvas de dibujo.</p>
                 </div>
             </div>
         </div>
 
-        <!-- Download Action -->
-        <div class="pt-4 border-t border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div class="text-xs text-gray-400">
-                Nombre de archivo en el servidor: <span class="font-mono text-cyan-400">{{ document.file.name }}</span>
-            </div>
-            <a href="{% url 'documents:download' document.pk %}" class="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 font-bold text-white text-sm shadow-md transition duration-200 flex items-center justify-center space-x-2">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                <span>Descargar Archivo Seguro</span>
-            </a>
+        <!-- Footer Info -->
+        <div class="pt-4 border-t border-slate-800 text-xs text-gray-500">
+            Nombre del archivo en el servidor: <span class="font-mono text-cyan-400">{{ document.file.name }}</span>
         </div>
 
     </div>
 </div>
+
+<!-- Modal for Signature -->
+<div id="signature-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950 bg-opacity-80 backdrop-blur-sm hidden">
+    <div class="glass-panel max-w-md w-full mx-4 p-6 rounded-2xl border border-slate-800 space-y-4 shadow-2xl">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h3 class="font-bold text-white text-base flex items-center space-x-2">
+                <svg class="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                <span>Firma de Autorización</span>
+            </h3>
+            <button type="button" id="modal-close" class="text-gray-400 hover:text-white transition">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        
+        <p class="text-xs text-gray-400 leading-relaxed">
+            Dibuja tu firma en el panel inferior para autorizar este documento y desbloquear la vista previa.
+        </p>
+
+        <!-- Canvas -->
+        <div class="relative overflow-hidden rounded-xl border border-slate-800 bg-slate-950 p-1">
+            <canvas id="modal-signature-pad" class="w-full h-36 bg-slate-950 rounded-lg cursor-crosshair touch-none" style="touch-action: none;"></canvas>
+            <div id="modal-signature-placeholder" class="absolute inset-0 flex items-center justify-center pointer-events-none text-xs text-slate-500">
+                Dibuja tu firma aquí
+            </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-2">
+            <button type="button" id="modal-clear-signature" class="text-xs text-red-400 hover:text-red-300 font-semibold transition px-2.5 py-1.5 bg-red-950 bg-opacity-20 hover:bg-opacity-40 border border-red-900 border-opacity-35 rounded-lg">
+                Limpiar
+            </button>
+            <div class="flex space-x-2">
+                <button type="button" id="modal-cancel" class="text-xs text-gray-400 hover:text-white font-semibold transition px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg">
+                    Cancelar
+                </button>
+                <button type="button" id="modal-validate-signature" class="text-xs text-white font-semibold transition px-4 py-1.5 bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 rounded-lg shadow-md">
+                    Validar y Mostrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const modal = document.getElementById("signature-modal");
+        const openModalBtn = document.getElementById("btn-show-signature-modal");
+        const closeModalBtn = document.getElementById("modal-close");
+        const cancelModalBtn = document.getElementById("modal-cancel");
+        const clearModalBtn = document.getElementById("modal-clear-signature");
+        const validateBtn = document.getElementById("modal-validate-signature");
+        const placeholder = document.getElementById("modal-signature-placeholder");
+        
+        const canvas = document.getElementById("modal-signature-pad");
+        const ctx = canvas.getContext("2d");
+        let drawing = false;
+        let hasDrawn = false;
+
+        // Open Modal
+        openModalBtn.addEventListener("click", function() {
+            modal.classList.remove("hidden");
+            resizeCanvas();
+            clearCanvas();
+        });
+
+        // Close Modal Handlers
+        function closeModal() {
+            modal.classList.add("hidden");
+        }
+        closeModalBtn.addEventListener("click", closeModal);
+        cancelModalBtn.addEventListener("click", closeModal);
+
+        // Resize Canvas to fit wrapper
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            // Set internal drawing resolution to match display size
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            // Restore styling and lines configuration
+            ctx.strokeStyle = '#818cf8';
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            placeholder.classList.remove("hidden");
+            hasDrawn = false;
+        }
+
+        clearModalBtn.addEventListener("click", clearCanvas);
+
+        // Drawing Helper Functions
+        function getCoords(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        function startDrawing(e) {
+            drawing = true;
+            placeholder.classList.add("hidden");
+            hasDrawn = true;
+            const coords = getCoords(e);
+            ctx.beginPath();
+            ctx.moveTo(coords.x, coords.y);
+            e.preventDefault();
+        }
+
+        function draw(e) {
+            if (!drawing) return;
+            const coords = getCoords(e);
+            ctx.lineTo(coords.x, coords.y);
+            ctx.stroke();
+            e.preventDefault();
+        }
+
+        function stopDrawing() {
+            drawing = false;
+        }
+
+        // Mouse Events
+        canvas.addEventListener("mousedown", startDrawing);
+        canvas.addEventListener("mousemove", draw);
+        window.addEventListener("mouseup", stopDrawing);
+
+        // Touch Events
+        canvas.addEventListener("touchstart", startDrawing, { passive: false });
+        canvas.addEventListener("touchmove", draw, { passive: false });
+        window.addEventListener("touchend", stopDrawing);
+
+        // Validate Signature and Unlock Preview
+        validateBtn.addEventListener("click", function() {
+            if (!hasDrawn) {
+                alert("Debe dibujar su firma para validar.");
+                return;
+            }
+            
+            const sigData = canvas.toDataURL("image/png");
+            
+            // Send AJAX request
+            fetch("{% url 'documents:validate_signature' document.pk %}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
+                body: JSON.stringify({
+                    signature_data: sigData
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Error en la validación");
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === "success") {
+                    closeModal();
+                    
+                    // Dynamically update signature status
+                    const signatureImgContainer = document.getElementById("signature-img-container");
+                    if (signatureImgContainer) {
+                        signatureImgContainer.innerHTML = `<img src="${data.signature_url}?t=${new Date().getTime()}" alt="Firma Autorizada" class="max-h-14 object-contain font-semibold border border-slate-850 rounded-lg p-0.5 bg-slate-950">`;
+                    }
+                    const signatureStatusBadge = document.getElementById("signature-status-badge");
+                    if (signatureStatusBadge) {
+                        signatureStatusBadge.className = "text-[10px] text-indigo-400 font-bold uppercase bg-indigo-950 bg-opacity-40 px-2 py-0.5 rounded border border-indigo-900 border-opacity-35";
+                        signatureStatusBadge.textContent = "Registrada";
+                    }
+
+                    // Dynamically render file preview in page
+                    const previewContainer = document.getElementById("preview-container");
+                    const contentType = "{{ document.content_type }}";
+                    const fileName = "{{ document.file.name }}";
+                    
+                    if (contentType.startsWith("image/") || fileName.endsWith(".png") || fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
+                        previewContainer.innerHTML = `<img src="${data.preview_url}" alt="{{ document.title }}" class="max-h-96 rounded-lg object-contain shadow-2xl border border-slate-850 bg-slate-950 p-1">`;
+                    } else if (contentType === "application/pdf" || fileName.endsWith(".pdf")) {
+                        previewContainer.innerHTML = `<iframe src="${data.preview_url}" class="w-full h-[450px] rounded-lg border border-slate-850" frameborder="0"></iframe>`;
+                    } else {
+                        previewContainer.innerHTML = `
+                            <div class="text-center py-6">
+                                <svg class="w-12 h-12 text-slate-600 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                </svg>
+                                <p class="text-xs text-gray-500 italic">Vista previa no disponible para archivos tipo ${contentType || 'desconocido'}.</p>
+                            </div>`;
+                    }
+                } else {
+                    alert("Validación incorrecta de la firma.");
+                }
+            })
+            .catch(error => {
+                console.error(error);
+                alert("Error al validar la firma. Inténtelo de nuevo.");
+            });
+        });
+    });
+</script>
 {% endblock %}

@@ -300,3 +300,64 @@ def signature_preview(request, pk):
             return response
         except FileNotFoundError:
             raise Http404("El archivo de la firma no fue encontrado en el servidor.")
+
+# 9. AJAX Validate Signature and Save (OWASP A01:2021)
+@login_required
+def document_validate_signature(request, pk):
+    from django.http import JsonResponse
+    from django.urls import reverse
+    import json
+    
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Método no permitido'}, status=405)
+    
+    document = get_object_or_404(Document, pk=pk)
+    
+    if document.owner != request.user:
+        log_security_event(
+            request, 
+            'UNAUTHORIZED_SIGNATURE_VALIDATE_ATTEMPT', 
+            f"El usuario '{request.user.username}' intentó firmar/validar el documento ID {pk} perteneciente a '{document.owner.username}'.", 
+            severity='CRITICAL'
+        )
+        return JsonResponse({'status': 'error', 'message': 'Acceso denegado'}, status=403)
+        
+    try:
+        data = json.loads(request.body)
+        sig_data = data.get('signature_data')
+    except Exception:
+        return JsonResponse({'status': 'error', 'message': 'Datos inválidos'}, status=400)
+        
+    if sig_data and sig_data.startswith('data:image/png;base64,'):
+        import base64
+        import time
+        from django.core.files.base import ContentFile
+        try:
+            # Delete old signature file if exists and using local FileSystemStorage
+            if document.signature_image and settings.DEFAULT_FILE_STORAGE == 'django.core.files.storage.FileSystemStorage':
+                try:
+                    if os.path.exists(document.signature_image.path):
+                        os.remove(document.signature_image.path)
+                except Exception:
+                    pass
+            
+            format, imgstr = sig_data.split(';base64,')
+            file_data = ContentFile(base64.b64decode(imgstr), name=f"sig_{request.user.id}_{int(time.time())}.png")
+            document.signature_image = file_data
+            document.save()
+            
+            log_security_event(
+                request, 
+                'SIGNATURE_VALIDATED', 
+                f"El usuario '{request.user.username}' firmó y validó el documento '{document.title}'."
+            )
+            
+            return JsonResponse({
+                'status': 'success',
+                'preview_url': reverse('documents:preview', args=[pk]),
+                'signature_url': reverse('documents:signature_preview', args=[pk])
+            })
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': f'Error al procesar la firma: {str(e)}'}, status=500)
+            
+    return JsonResponse({'status': 'error', 'message': 'Firma inválida o vacía'}, status=400)

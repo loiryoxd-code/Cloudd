@@ -12,4 +12,5 @@ urlpatterns = [
     path('<int:pk>/download/', views.document_download, name='download'),
     path('<int:pk>/preview/', views.document_preview, name='preview'),
     path('<int:pk>/signature-preview/', views.signature_preview, name='signature_preview'),
+    path('<int:pk>/validate-signature/', views.document_validate_signature, name='validate_signature'),
 ]

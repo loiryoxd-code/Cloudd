@@ -88,3 +88,41 @@ class DocumentSignatureAndPreviewTests(TestCase):
         self.client.force_login(self.other_user)
         response = self.client.get(reverse('documents:signature_preview', args=[doc.pk]))
         self.assertEqual(response.status_code, 403)
+
+    def test_ajax_validate_signature(self):
+        # Create a document for owner without signature
+        doc = Document.objects.create(
+            owner=self.owner,
+            title="AJAX Document",
+            file=SimpleUploadedFile("test.png", b"png_data", content_type="image/png"),
+            content_type="image/png"
+        )
+        
+        # 1. Non-owner cannot validate signature (Broken Access Control)
+        self.client.force_login(self.other_user)
+        response = self.client.post(
+            reverse('documents:validate_signature', args=[doc.pk]),
+            data='{"signature_data": "' + self.dummy_sig_base64 + '"}',
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 403)
+        
+        # 2. Owner can validate signature via AJAX POST
+        self.client.force_login(self.owner)
+        response = self.client.post(
+            reverse('documents:validate_signature', args=[doc.pk]),
+            data='{"signature_data": "' + self.dummy_sig_base64 + '"}',
+            content_type="application/json"
+        )
+        self.assertEqual(response.status_code, 200)
+        
+        # Verify JSON response contains success status and preview links
+        data = response.json()
+        self.assertEqual(data['status'], 'success')
+        self.assertIn('preview_url', data)
+        self.assertIn('signature_url', data)
+        
+        # Verify DB updated
+        doc.refresh_from_db()
+        self.assertIsNotNone(doc.signature_image)
+        self.assertTrue(doc.signature_image.name.startswith('signatures/sig_'))
