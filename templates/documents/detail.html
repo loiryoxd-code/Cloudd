@@ -63,18 +63,40 @@
             </h3>
             
             <div class="p-4 rounded-xl bg-slate-900 bg-opacity-65 border border-slate-800 flex flex-col items-center justify-center min-h-40">
-                {% if document.content_type|slice:":6" == "image/" or document.file.name|slice:"-4:" == ".png" or document.file.name|slice:"-4:" == ".jpg" or document.file.name|slice:"-5:" == ".jpeg" %}
-                    <img src="{% url 'documents:preview' document.pk %}" alt="{{ document.title }}" class="max-h-96 rounded-lg object-contain shadow-2xl border border-slate-850 bg-slate-950 p-1">
-                {% elif document.content_type == "application/pdf" or document.file.name|slice:"-4:" == ".pdf" %}
-                    <iframe src="{% url 'documents:preview' document.pk %}" class="w-full h-[450px] rounded-lg border border-slate-850" frameborder="0"></iframe>
-                {% else %}
-                    <div class="text-center py-6">
-                        <svg class="w-12 h-12 text-slate-600 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                        </svg>
-                        <p class="text-xs text-gray-500 italic">Vista previa no disponible para archivos tipo {{ document.content_type|default:"desconocido" }}.</p>
-                        <p class="text-[10px] text-gray-600 mt-1">Usa el botón de descarga segura al final para ver este recurso.</p>
+                {% if not document.signature_image %}
+                    <!-- Censored/Locked State -->
+                    <div class="text-center py-8 space-y-3 w-full max-w-md">
+                        <div class="relative inline-block">
+                            <!-- Locked icon backdrop -->
+                            <div class="w-16 h-16 rounded-2xl bg-yellow-950 bg-opacity-40 border border-yellow-900 border-opacity-40 flex items-center justify-center text-yellow-400 mx-auto animate-pulse">
+                                <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <h4 class="font-bold text-white text-sm">Evidencia protegida pendiente de validación</h4>
+                        <p class="text-xs text-gray-400">Esta evidencia requiere tu firma manuscrita para desbloquear la previsualización interactiva y verificar su conformidad.</p>
+                        <div class="pt-2">
+                            <a href="{% url 'documents:update' document.pk %}" class="inline-flex items-center space-x-1 px-4 py-2 bg-indigo-950 bg-opacity-50 hover:bg-opacity-80 border border-indigo-900 border-opacity-40 hover:border-indigo-800 text-xs text-indigo-300 font-semibold rounded-lg transition">
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                                <span>Firmar y Validar Evidencia</span>
+                            </a>
+                        </div>
                     </div>
+                {% else %}
+                    {% if document.content_type|slice:":6" == "image/" or document.file.name|slice:"-4:" == ".png" or document.file.name|slice:"-4:" == ".jpg" or document.file.name|slice:"-5:" == ".jpeg" %}
+                        <img src="{% url 'documents:preview' document.pk %}" alt="{{ document.title }}" class="max-h-96 rounded-lg object-contain shadow-2xl border border-slate-850 bg-slate-950 p-1">
+                    {% elif document.content_type == "application/pdf" or document.file.name|slice:"-4:" == ".pdf" %}
+                        <iframe src="{% url 'documents:preview' document.pk %}" class="w-full h-[450px] rounded-lg border border-slate-850" frameborder="0"></iframe>
+                    {% else %}
+                        <div class="text-center py-6">
+                            <svg class="w-12 h-12 text-slate-600 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                            </svg>
+                            <p class="text-xs text-gray-500 italic">Vista previa no disponible para archivos tipo {{ document.content_type|default:"desconocido" }}.</p>
+                            <p class="text-[10px] text-gray-600 mt-1">Usa el botón de descarga segura al final para ver este recurso.</p>
+                        </div>
+                    {% endif %}
                 {% endif %}
             </div>
         </div>

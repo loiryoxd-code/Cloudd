@@ -238,6 +238,16 @@ def document_preview(request, pk):
         )
         raise PermissionDenied("Acceso denegado a este recurso.")
 
+    # Prevent previewing if document is not signed/validated (OWASP A04:2021 Safe-by-default)
+    if not document.signature_image:
+        log_security_event(
+            request, 
+            'UNAUTHORIZED_PREVIEW_UNSIGNED', 
+            f"El usuario '{request.user.username}' intentó previsualizar el archivo ID {pk} sin estar firmado/validado.", 
+            severity='WARNING'
+        )
+        raise PermissionDenied("Evidencia protegida pendiente de validación.")
+
     log_security_event(
         request, 
         'DOCUMENT_PREVIEW', 

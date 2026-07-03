@@ -43,7 +43,7 @@ class DocumentSignatureAndPreviewTests(TestCase):
         self.assertEqual(doc.decrypt_notes(), 'Confidential notes')
 
     def test_secure_preview_ownership(self):
-        # Create a document for owner
+        # Create a document for owner without signature
         doc = Document.objects.create(
             owner=self.owner,
             title="Secure Image",
@@ -51,13 +51,19 @@ class DocumentSignatureAndPreviewTests(TestCase):
             content_type="image/png"
         )
         
-        # 1. Owner can access preview and it's inline
+        # 1. Owner cannot access preview when unsigned
         self.client.force_login(self.owner)
+        response = self.client.get(reverse('documents:preview', args=[doc.pk]))
+        self.assertEqual(response.status_code, 403)
+        
+        # 2. Add signature, now Owner can access preview and it's inline
+        doc.signature_image = SimpleUploadedFile("sig.png", b"sig_data", content_type="image/png")
+        doc.save()
         response = self.client.get(reverse('documents:preview', args=[doc.pk]))
         self.assertEqual(response.status_code, 200)
         self.assertIn('inline', response['Content-Disposition'])
         
-        # 2. Other logged-in user cannot access preview (Broken Access Control Prevention)
+        # 3. Other logged-in user cannot access preview even if signed
         self.client.force_login(self.other_user)
         response = self.client.get(reverse('documents:preview', args=[doc.pk]))
         self.assertEqual(response.status_code, 403)
