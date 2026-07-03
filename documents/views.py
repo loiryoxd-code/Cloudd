@@ -254,20 +254,14 @@ def document_preview(request, pk):
         f"El usuario '{request.user.username}' previsualizó el archivo '{document.file.name}'."
     )
 
-    if settings.DEFAULT_FILE_STORAGE == 'storages.backends.azure_storage.AzureStorage':
-        try:
-            url = document.file.url
-            return HttpResponseRedirect(url)
-        except Exception as e:
-            log_security_event(request, 'AZURE_STORAGE_ERROR', f"Error previsualizando desde Azure: {str(e)}", severity='WARNING')
-            raise Http404("Error al recuperar el archivo del almacenamiento en la nube.")
-    else:
-        try:
-            response = FileResponse(document.file.open('rb'), content_type=document.content_type)
-            response['Content-Disposition'] = f'inline; filename="{os.path.basename(document.file.name)}"'
-            return response
-        except FileNotFoundError:
-            raise Http404("El archivo físico no fue encontrado en el servidor.")
+    try:
+        file_obj = document.file.open('rb')
+        response = FileResponse(file_obj, content_type=document.content_type)
+        response['Content-Disposition'] = f'inline; filename="{os.path.basename(document.file.name)}"'
+        return response
+    except Exception as e:
+        log_security_event(request, 'PREVIEW_ERROR', f"Error al abrir archivo para vista previa: {str(e)}", severity='WARNING')
+        raise Http404("No se pudo cargar la vista previa del archivo.")
 
 # 8. Secure Signature Preview / Access Controller (A01:2021, A04:2021)
 @login_required
@@ -287,19 +281,14 @@ def signature_preview(request, pk):
     if not document.signature_image:
         raise Http404("No hay firma manuscrita para este documento.")
 
-    if settings.DEFAULT_FILE_STORAGE == 'storages.backends.azure_storage.AzureStorage':
-        try:
-            url = document.signature_image.url
-            return HttpResponseRedirect(url)
-        except Exception as e:
-            raise Http404("Error al recuperar la firma.")
-    else:
-        try:
-            response = FileResponse(document.signature_image.open('rb'), content_type='image/png')
-            response['Content-Disposition'] = f'inline; filename="{os.path.basename(document.signature_image.name)}"'
-            return response
-        except FileNotFoundError:
-            raise Http404("El archivo de la firma no fue encontrado en el servidor.")
+    try:
+        file_obj = document.signature_image.open('rb')
+        response = FileResponse(file_obj, content_type='image/png')
+        response['Content-Disposition'] = f'inline; filename="{os.path.basename(document.signature_image.name)}"'
+        return response
+    except Exception as e:
+        log_security_event(request, 'SIGNATURE_PREVIEW_ERROR', f"Error al abrir firma para vista previa: {str(e)}", severity='WARNING')
+        raise Http404("No se pudo cargar la vista previa de la firma.")
 
 # 9. AJAX Validate Signature and Save (OWASP A01:2021)
 @login_required
