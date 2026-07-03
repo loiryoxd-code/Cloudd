@@ -55,6 +55,30 @@
             </p>
         </div>
 
+        <!-- Document Preview (OWASP A01 Secure View) -->
+        <div class="space-y-3">
+            <h3 class="font-bold text-sm text-white flex items-center space-x-2">
+                <svg class="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                <span>Vista Previa Segura de la Evidencia</span>
+            </h3>
+            
+            <div class="p-4 rounded-xl bg-slate-900 bg-opacity-65 border border-slate-800 flex flex-col items-center justify-center min-h-40">
+                {% if document.content_type|slice:":6" == "image/" or document.file.name|slice:"-4:" == ".png" or document.file.name|slice:"-4:" == ".jpg" or document.file.name|slice:"-5:" == ".jpeg" %}
+                    <img src="{% url 'documents:preview' document.pk %}" alt="{{ document.title }}" class="max-h-96 rounded-lg object-contain shadow-2xl border border-slate-850 bg-slate-950 p-1">
+                {% elif document.content_type == "application/pdf" or document.file.name|slice:"-4:" == ".pdf" %}
+                    <iframe src="{% url 'documents:preview' document.pk %}" class="w-full h-[450px] rounded-lg border border-slate-850" frameborder="0"></iframe>
+                {% else %}
+                    <div class="text-center py-6">
+                        <svg class="w-12 h-12 text-slate-600 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                        </svg>
+                        <p class="text-xs text-gray-500 italic">Vista previa no disponible para archivos tipo {{ document.content_type|default:"desconocido" }}.</p>
+                        <p class="text-[10px] text-gray-600 mt-1">Usa el botón de descarga segura al final para ver este recurso.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
         <!-- File Properties / Integrity Parameters (OWASP A08:2021) -->
         <div class="space-y-4">
             <h3 class="font-bold text-sm text-white">Metadatos de Integridad del Archivo</h3>
@@ -75,16 +99,42 @@
                 </div>
             </div>
 
-            <!-- SHA-256 Integrity Hash -->
-            <div class="p-4 rounded-xl bg-slate-900 bg-opacity-65 border border-slate-800 space-y-2">
-                <div class="flex items-center justify-between">
-                    <span class="text-[10px] text-gray-500 font-bold uppercase">Firma SHA-256 (Integridad)</span>
-                    <span class="text-[10px] text-emerald-400 font-bold uppercase bg-emerald-950 bg-opacity-40 px-2 py-0.5 rounded border border-emerald-900 border-opacity-35">Verificada</span>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- SHA-256 Integrity Hash -->
+                <div class="p-4 rounded-xl bg-slate-900 bg-opacity-65 border border-slate-800 space-y-2 flex flex-col justify-between">
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] text-gray-500 font-bold uppercase">Firma SHA-256 (Integridad)</span>
+                            <span class="text-[10px] text-emerald-400 font-bold uppercase bg-emerald-950 bg-opacity-40 px-2 py-0.5 rounded border border-emerald-900 border-opacity-35">Verificada</span>
+                        </div>
+                        <div class="p-3 bg-slate-950 rounded-lg border border-slate-850 text-xs font-mono text-cyan-400 break-all select-all">
+                            {{ document.file_hash }}
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-gray-500">Este valor se calcula en el momento de la carga y sirve para corroborar que el almacenamiento mantiene intacto el archivo original.</p>
                 </div>
-                <div class="p-3 bg-slate-950 rounded-lg border border-slate-850 text-xs font-mono text-cyan-400 break-all select-all">
-                    {{ document.file_hash }}
+
+                <!-- Hand-drawn Signature -->
+                <div class="p-4 rounded-xl bg-slate-900 bg-opacity-65 border border-slate-800 space-y-2 flex flex-col justify-between">
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] text-gray-500 font-bold uppercase">Autorización (Firma Manuscrita)</span>
+                            {% if document.signature_image %}
+                                <span class="text-[10px] text-indigo-400 font-bold uppercase bg-indigo-950 bg-opacity-40 px-2 py-0.5 rounded border border-indigo-900 border-opacity-35">Registrada</span>
+                            {% else %}
+                                <span class="text-[10px] text-yellow-400 font-bold uppercase bg-yellow-950 bg-opacity-40 px-2 py-0.5 rounded border border-yellow-900 border-opacity-35">Sin Firma</span>
+                            {% endif %}
+                        </div>
+                        <div class="p-3 bg-slate-950 rounded-lg border border-slate-850 flex items-center justify-center min-h-[68px]">
+                            {% if document.signature_image %}
+                                <img src="{% url 'documents:signature_preview' document.pk %}" alt="Firma Autorizada" class="max-h-14 object-contain">
+                            {% else %}
+                                <span class="text-xs text-gray-500 italic">No se registró firma manuscrita.</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <p class="text-[10px] text-gray-500">Representa la validación del usuario emisor capturada mediante canvas de dibujo al subir la evidencia.</p>
                 </div>
-                <p class="text-[10px] text-gray-500">Este valor se calcula en el momento de la carga y sirve para corroborar que el almacenamiento mantiene intacto el archivo original.</p>
             </div>
         </div>
 

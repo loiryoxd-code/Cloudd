@@ -10,4 +10,6 @@ urlpatterns = [
     path('<int:pk>/edit/', views.document_update, name='update'),
     path('<int:pk>/delete/', views.document_delete, name='delete'),
     path('<int:pk>/download/', views.document_download, name='download'),
+    path('<int:pk>/preview/', views.document_preview, name='preview'),
+    path('<int:pk>/signature-preview/', views.signature_preview, name='signature_preview'),
 ]

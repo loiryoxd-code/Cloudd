@@ -1,0 +1,84 @@
+from django.test import TestCase, Client
+from django.contrib.auth.models import User
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.urls import reverse
+from documents.models import Document
+import base64
+
+class DocumentSignatureAndPreviewTests(TestCase):
+    def setUp(self):
+        # Create two users
+        self.owner = User.objects.create_user(username='owner', password='password123#')
+        self.other_user = User.objects.create_user(username='other', password='password123#')
+        
+        # Simple test file
+        self.test_file = SimpleUploadedFile("test.png", b"file_content_fake_png", content_type="image/png")
+        
+        # Base64 signature data (a dummy transparent 1x1 png)
+        self.dummy_sig_base64 = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+
+    def test_upload_document_with_signature(self):
+        self.client.force_login(self.owner)
+        
+        # Test document create
+        response = self.client.post(reverse('documents:create'), {
+            'title': 'Test Document Signature',
+            'description': 'Description text',
+            'notes': 'Confidential notes',
+            'file': self.test_file,
+            'signature_data': self.dummy_sig_base64
+        })
+        
+        # Assert redirected to detail
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify document saved with signature
+        doc = Document.objects.filter(owner=self.owner).first()
+        self.assertIsNotNone(doc)
+        self.assertEqual(doc.title, 'Test Document Signature')
+        self.assertIsNotNone(doc.signature_image)
+        self.assertTrue(doc.signature_image.name.startswith('signatures/sig_'))
+        
+        # Check notes decrypted correctly
+        self.assertEqual(doc.decrypt_notes(), 'Confidential notes')
+
+    def test_secure_preview_ownership(self):
+        # Create a document for owner
+        doc = Document.objects.create(
+            owner=self.owner,
+            title="Secure Image",
+            file=SimpleUploadedFile("test.png", b"png_data", content_type="image/png"),
+            content_type="image/png"
+        )
+        
+        # 1. Owner can access preview and it's inline
+        self.client.force_login(self.owner)
+        response = self.client.get(reverse('documents:preview', args=[doc.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('inline', response['Content-Disposition'])
+        
+        # 2. Other logged-in user cannot access preview (Broken Access Control Prevention)
+        self.client.force_login(self.other_user)
+        response = self.client.get(reverse('documents:preview', args=[doc.pk]))
+        self.assertEqual(response.status_code, 403)
+
+    def test_secure_signature_preview_ownership(self):
+        # Create a document with a signature for owner
+        doc = Document.objects.create(
+            owner=self.owner,
+            title="Signed Document",
+            file=SimpleUploadedFile("test.pdf", b"pdf_data", content_type="application/pdf"),
+            signature_image=SimpleUploadedFile("sig.png", b"signature_png_data", content_type="image/png")
+        )
+        
+        # 1. Owner can access signature preview and it is inline
+        self.client.force_login(self.owner)
+        response = self.client.get(reverse('documents:signature_preview', args=[doc.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'image/png')
+        self.assertIn('inline', response['Content-Disposition'])
+        
+        # 2. Other user cannot access signature preview (Broken Access Control Prevention)
+        self.client.force_login(self.other_user)
+        response = self.client.get(reverse('documents:signature_preview', args=[doc.pk]))
+        self.assertEqual(response.status_code, 403)

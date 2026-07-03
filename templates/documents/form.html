@@ -84,6 +84,36 @@
                 <p class="text-[10px] text-gray-500">Límite: 10 MB. Extensiones permitidas: PDF, ZIP, PNG, JPG, JPEG, DOCX, XLSX, TXT, CSV, JSON.</p>
             </div>
 
+            <!-- Hidden Signature Field -->
+            {{ form.signature_data }}
+
+            <!-- Signature Pad Canvas -->
+            <div class="space-y-2">
+                <label class="text-xs font-bold text-gray-400 uppercase tracking-wider block">Firma Manuscrita (Evidencia Autorizada)</label>
+                
+                {% if is_edit and document.signature_image %}
+                    <div class="p-3 bg-slate-900 bg-opacity-60 rounded-xl border border-slate-850 text-xs text-gray-400 mb-2 space-y-1">
+                        <span class="block font-semibold">Firma actual guardada:</span>
+                        <img src="{% url 'documents:signature_preview' document.pk %}" alt="Firma actual" class="max-h-16 bg-slate-950 rounded-lg p-2 border border-slate-800 object-contain">
+                        <span class="text-[10px] text-gray-500 block">Dibuja una nueva firma abajo si deseas cambiarla.</span>
+                    </div>
+                {% endif %}
+
+                <div class="relative overflow-hidden rounded-xl border border-slate-800 bg-slate-900 p-2">
+                    <canvas id="signature-pad" class="w-full h-40 bg-slate-950 rounded-lg cursor-crosshair touch-none" style="touch-action: none;"></canvas>
+                    <div id="signature-placeholder" class="absolute inset-0 flex items-center justify-center pointer-events-none text-xs text-slate-500">
+                        Dibuja tu firma aquí con el mouse o dedo
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between">
+                    <p class="text-[10px] text-gray-500">La firma se guardará como imagen PNG asociada a esta evidencia.</p>
+                    <button type="button" id="clear-signature" class="text-xs text-red-400 hover:text-red-300 font-semibold transition px-2 py-1 bg-red-950 bg-opacity-20 hover:bg-opacity-40 border border-red-900 border-opacity-35 rounded">
+                        Limpiar Firma
+                    </button>
+                </div>
+            </div>
+
             <!-- Action buttons -->
             <div class="pt-4 border-t border-slate-800 flex justify-end space-x-3">
                 {% if is_edit %}
@@ -104,4 +134,98 @@
         </form>
     </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const canvas = document.getElementById("signature-pad");
+        const ctx = canvas.getContext("2d");
+        const clearBtn = document.getElementById("clear-signature");
+        const hiddenField = document.getElementById("id_signature_data");
+        const placeholder = document.getElementById("signature-placeholder");
+        const form = canvas.closest("form");
+
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            
+            ctx.strokeStyle = "#818cf8"; // indigo-400
+            ctx.lineWidth = 3;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+        }
+        
+        resizeCanvas();
+        // Delay a bit to ensure container width is fully computed
+        setTimeout(resizeCanvas, 100);
+        window.addEventListener("resize", resizeCanvas);
+
+        let drawing = false;
+        let lastX = 0;
+        let lastY = 0;
+        let hasDrawn = false;
+
+        function getMousePos(canvasDom, touchOrMouseEvent) {
+            const rect = canvasDom.getBoundingClientRect();
+            const clientX = touchOrMouseEvent.touches ? touchOrMouseEvent.touches[0].clientX : touchOrMouseEvent.clientX;
+            const clientY = touchOrMouseEvent.touches ? touchOrMouseEvent.touches[0].clientY : touchOrMouseEvent.clientY;
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        function startDrawing(e) {
+            drawing = true;
+            const pos = getMousePos(canvas, e);
+            lastX = pos.x;
+            lastY = pos.y;
+            
+            if (!hasDrawn) {
+                placeholder.classList.add("hidden");
+                hasDrawn = true;
+            }
+            e.preventDefault();
+        }
+
+        function draw(e) {
+            if (!drawing) return;
+            const pos = getMousePos(canvas, e);
+            
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+            
+            lastX = pos.x;
+            lastY = pos.y;
+            e.preventDefault();
+        }
+
+        function stopDrawing(e) {
+            drawing = false;
+        }
+
+        canvas.addEventListener("mousedown", startDrawing);
+        canvas.addEventListener("mousemove", draw);
+        window.addEventListener("mouseup", stopDrawing);
+
+        canvas.addEventListener("touchstart", startDrawing, { passive: false });
+        canvas.addEventListener("touchmove", draw, { passive: false });
+        window.addEventListener("touchend", stopDrawing);
+
+        clearBtn.addEventListener("click", function() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            hiddenField.value = "";
+            placeholder.classList.remove("hidden");
+            hasDrawn = false;
+        });
+
+        form.addEventListener("submit", function() {
+            if (hasDrawn) {
+                hiddenField.value = canvas.toDataURL("image/png");
+            }
+        });
+    });
+</script>
 {% endblock %}

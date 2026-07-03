@@ -10,6 +10,10 @@ class SecureDocumentForm(forms.ModelForm):
         required=False,
         label="Notas Confidenciales"
     )
+    signature_data = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput()
+    )
 
     class Meta:
         model = Document

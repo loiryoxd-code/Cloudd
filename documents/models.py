@@ -18,6 +18,7 @@ class Document(models.Model):
     # Cryptographic Failures Mitigation (OWASP A02:2021)
     # Encrypted notes/metadata for extra sensitivity
     encrypted_notes = models.TextField(blank=True, verbose_name="Notas encriptadas en reposo")
+    signature_image = models.FileField(upload_to='signatures/', blank=True, null=True, verbose_name="Firma Manuscrita")
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

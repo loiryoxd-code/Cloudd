@@ -53,6 +53,20 @@ def document_create(request):
             
             # Encrypt sensitive notes field before saving to Database (A02:2021)
             document.encrypt_notes(form.cleaned_data.get('notes', ''))
+            
+            # Save handwritten signature if drawn
+            sig_data = form.cleaned_data.get('signature_data')
+            if sig_data and sig_data.startswith('data:image/png;base64,'):
+                import base64
+                import time
+                from django.core.files.base import ContentFile
+                try:
+                    format, imgstr = sig_data.split(';base64,')
+                    data = ContentFile(base64.b64decode(imgstr), name=f"sig_{request.user.id}_{int(time.time())}.png")
+                    document.signature_image = data
+                except Exception:
+                    pass
+
             document.save()
             
             log_security_event(
@@ -89,6 +103,28 @@ def document_update(request, pk):
         if form.is_valid():
             updated_doc = form.save(commit=False)
             updated_doc.encrypt_notes(form.cleaned_data.get('notes', ''))
+            
+            # Save handwritten signature if new signature drawn
+            sig_data = form.cleaned_data.get('signature_data')
+            if sig_data and sig_data.startswith('data:image/png;base64,'):
+                import base64
+                import time
+                from django.core.files.base import ContentFile
+                try:
+                    # Delete old signature file if exists and using local FileSystemStorage
+                    if updated_doc.signature_image and settings.DEFAULT_FILE_STORAGE == 'django.core.files.storage.FileSystemStorage':
+                        try:
+                            if os.path.exists(updated_doc.signature_image.path):
+                                os.remove(updated_doc.signature_image.path)
+                        except Exception:
+                            pass
+                    
+                    format, imgstr = sig_data.split(';base64,')
+                    data = ContentFile(base64.b64decode(imgstr), name=f"sig_{request.user.id}_{int(time.time())}.png")
+                    updated_doc.signature_image = data
+                except Exception:
+                    pass
+
             updated_doc.save()
             
             log_security_event(
@@ -131,6 +167,14 @@ def document_delete(request, pk):
                     os.remove(document.file.path)
             except Exception as e:
                 log_security_event(request, 'FILE_DELETE_ERROR', f"Error eliminando archivo físico: {str(e)}", severity='WARNING')
+
+        # Clean up signature image if exists
+        if document.signature_image and settings.DEFAULT_FILE_STORAGE == 'django.core.files.storage.FileSystemStorage':
+            try:
+                if os.path.exists(document.signature_image.path):
+                    os.remove(document.signature_image.path)
+            except Exception:
+                pass
 
         document.delete()
         log_security_event(request, 'DOCUMENT_DELETE', f"El usuario '{request.user.username}' eliminó el documento '{title}' (Ruta: {file_path}).")
@@ -178,3 +222,71 @@ def document_download(request, pk):
             return response
         except FileNotFoundError:
             raise Http404("El archivo físico no fue encontrado en el servidor.")
+
+# 7. Secure Preview / Access Controller (A01:2021, A04:2021)
+@login_required
+def document_preview(request, pk):
+    document = get_object_or_404(Document, pk=pk)
+    
+    # Prevent unauthorized previewing of other user's files
+    if document.owner != request.user:
+        log_security_event(
+            request, 
+            'UNAUTHORIZED_PREVIEW_ATTEMPT', 
+            f"El usuario '{request.user.username}' intentó previsualizar el archivo ID {pk} perteneciente a '{document.owner.username}'.", 
+            severity='CRITICAL'
+        )
+        raise PermissionDenied("Acceso denegado a este recurso.")
+
+    log_security_event(
+        request, 
+        'DOCUMENT_PREVIEW', 
+        f"El usuario '{request.user.username}' previsualizó el archivo '{document.file.name}'."
+    )
+
+    if settings.DEFAULT_FILE_STORAGE == 'storages.backends.azure_storage.AzureStorage':
+        try:
+            url = document.file.url
+            return HttpResponseRedirect(url)
+        except Exception as e:
+            log_security_event(request, 'AZURE_STORAGE_ERROR', f"Error previsualizando desde Azure: {str(e)}", severity='WARNING')
+            raise Http404("Error al recuperar el archivo del almacenamiento en la nube.")
+    else:
+        try:
+            response = FileResponse(document.file.open('rb'), content_type=document.content_type)
+            response['Content-Disposition'] = f'inline; filename="{os.path.basename(document.file.name)}"'
+            return response
+        except FileNotFoundError:
+            raise Http404("El archivo físico no fue encontrado en el servidor.")
+
+# 8. Secure Signature Preview / Access Controller (A01:2021, A04:2021)
+@login_required
+def signature_preview(request, pk):
+    document = get_object_or_404(Document, pk=pk)
+    
+    # Prevent unauthorized previewing of other user's signatures
+    if document.owner != request.user:
+        log_security_event(
+            request, 
+            'UNAUTHORIZED_SIGNATURE_PREVIEW_ATTEMPT', 
+            f"El usuario '{request.user.username}' intentó previsualizar la firma del documento ID {pk} perteneciente a '{document.owner.username}'.", 
+            severity='CRITICAL'
+        )
+        raise PermissionDenied("Acceso denegado a este recurso.")
+
+    if not document.signature_image:
+        raise Http404("No hay firma manuscrita para este documento.")
+
+    if settings.DEFAULT_FILE_STORAGE == 'storages.backends.azure_storage.AzureStorage':
+        try:
+            url = document.signature_image.url
+            return HttpResponseRedirect(url)
+        except Exception as e:
+            raise Http404("Error al recuperar la firma.")
+    else:
+        try:
+            response = FileResponse(document.signature_image.open('rb'), content_type='image/png')
+            response['Content-Disposition'] = f'inline; filename="{os.path.basename(document.signature_image.name)}"'
+            return response
+        except FileNotFoundError:
+            raise Http404("El archivo de la firma no fue encontrado en el servidor.")
