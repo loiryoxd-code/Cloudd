@@ -71,21 +71,14 @@ TEMPLATES = [
 WSGI_APPLICATION = 'securedocs.wsgi.application'
 
 # Database Configuration (OCI Autonomous Database / SQLite Fallback)
-# Enforce Oracle OCI in production (when DEBUG=False) and prevent silent fallback to SQLite.
-oci_db_name = os.getenv('OCI_DB_NAME')
-oci_db_user = os.getenv('OCI_DB_USER')
-oci_db_password = os.getenv('OCI_DB_PASSWORD')
-oci_wallet_dir = os.getenv('OCI_WALLET_DIR')
-oci_wallet_password = os.getenv('OCI_WALLET_PASSWORD')
+# If OCI environment variables are present, connect to Oracle, else fall back to local SQLite.
+oci_db_name = os.getenv('OCI_DB_NAME') or os.getenv('OCI_DSN')
+oci_db_user = os.getenv('OCI_DB_USER') or os.getenv('OCI_USER')
+oci_db_password = os.getenv('OCI_DB_PASSWORD') or os.getenv('OCI_PASSWORD')
+oci_wallet_dir = os.getenv('OCI_WALLET_DIR') or os.getenv('TNS_ADMIN') or os.getenv('WALLET_LOCATION')
+oci_wallet_password = os.getenv('OCI_WALLET_PASSWORD') or os.getenv('WALLET_PASSWORD')
 
-if not DEBUG:
-    # Production Environment: Oracle OCI is mandatory.
-    if not (oci_db_name and oci_db_user and oci_db_password):
-        from django.core.exceptions import ImproperlyConfigured
-        raise ImproperlyConfigured(
-            "Configuración de base de datos incorrecta: En producción (DEBUG=False) las variables "
-            "de conexión de Oracle OCI (OCI_DB_NAME, OCI_DB_USER, OCI_DB_PASSWORD) son mandatorias."
-        )
+if oci_db_name and oci_db_user and oci_db_password:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.oracle',
@@ -100,28 +93,12 @@ if not DEBUG:
         }
     }
 else:
-    # Development Environment: Fallback to local SQLite if Oracle variables are not defined.
-    if oci_db_name and oci_db_user and oci_db_password:
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.oracle',
-                'NAME': oci_db_name,
-                'USER': oci_db_user,
-                'PASSWORD': oci_db_password,
-                'OPTIONS': {
-                    'config_dir': oci_wallet_dir,
-                    'wallet_location': oci_wallet_dir,
-                    'wallet_password': oci_wallet_password,
-                },
-            }
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
         }
-    else:
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.sqlite3',
-                'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-            }
-        }
+    }
 
 # Password validation (OWASP A07:2021 mitigation)
 AUTH_PASSWORD_VALIDATORS = [

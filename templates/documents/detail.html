@@ -63,21 +63,36 @@
             </h3>
             
             <div id="preview-container" class="p-6 rounded-xl bg-slate-900 bg-opacity-65 border border-slate-800 flex flex-col items-center justify-center min-h-[220px]">
-                <div class="text-center py-4 space-y-3">
-                    <div class="w-12 h-12 rounded-xl bg-indigo-950 bg-opacity-40 border border-indigo-900 border-opacity-40 flex items-center justify-center text-indigo-400 mx-auto animate-pulse">
-                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                        </svg>
+                {% if document.signature_image %}
+                    {% if "image" in document.content_type %}
+                        <img src="{% url 'documents:preview' document.pk %}" alt="{{ document.title }}" class="max-h-96 rounded-lg object-contain shadow-2xl border border-slate-850 bg-slate-950 p-1">
+                    {% elif "pdf" in document.content_type %}
+                        <iframe src="{% url 'documents:preview' document.pk %}" class="w-full h-[450px] rounded-lg border border-slate-850" frameborder="0"></iframe>
+                    {% else %}
+                        <div class="text-center py-6">
+                            <svg class="w-12 h-12 text-slate-600 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                            </svg>
+                            <p class="text-xs text-gray-500 italic">Vista previa no disponible para archivos tipo {{ document.content_type|default:'desconocido' }}.</p>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="text-center py-4 space-y-3">
+                        <div class="w-12 h-12 rounded-xl bg-indigo-950 bg-opacity-40 border border-indigo-900 border-opacity-40 flex items-center justify-center text-indigo-400 mx-auto animate-pulse">
+                            <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            </svg>
+                        </div>
+                        <h4 class="font-bold text-white text-sm">Vista previa protegida</h4>
+                        <p class="text-xs text-gray-400 max-w-sm mx-auto">Esta evidencia requiere tu firma de conformidad manuscrita para autorizar el desbloqueo.</p>
+                        <div class="pt-3">
+                            <button id="btn-show-signature-modal" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 font-bold text-white text-xs shadow-md transition duration-200 flex items-center space-x-2 mx-auto">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                                <span>Ver Vista Previa</span>
+                            </button>
+                        </div>
                     </div>
-                    <h4 class="font-bold text-white text-sm">Vista previa protegida</h4>
-                    <p class="text-xs text-gray-400 max-w-sm mx-auto">Esta evidencia requiere tu firma de conformidad manuscrita para autorizar el desbloqueo.</p>
-                    <div class="pt-3">
-                        <button id="btn-show-signature-modal" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 font-bold text-white text-xs shadow-md transition duration-200 flex items-center space-x-2 mx-auto">
-                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                            <span>Ver Vista Previa</span>
-                        </button>
-                    </div>
-                </div>
+                {% endif %}
             </div>
         </div>
 
@@ -206,11 +221,13 @@
         let hasDrawn = false;
 
         // Open Modal
-        openModalBtn.addEventListener("click", function() {
-            modal.classList.remove("hidden");
-            resizeCanvas();
-            clearCanvas();
-        });
+        if (openModalBtn) {
+            openModalBtn.addEventListener("click", function() {
+                modal.classList.remove("hidden");
+                resizeCanvas();
+                clearCanvas();
+            });
+        }
 
         // Close Modal Handlers
         function closeModal() {
