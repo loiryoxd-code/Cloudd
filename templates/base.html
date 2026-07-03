@@ -199,14 +199,41 @@
                 <span class="text-xs px-2.5 py-1 rounded-full bg-indigo-950 bg-opacity-50 text-indigo-400 border border-indigo-850">
                     Vault Status: Activo
                 </span>
+                <span class="text-xs px-2.5 py-1 rounded-full {% if is_oracle_db %}bg-emerald-950 bg-opacity-50 text-emerald-400 border border-emerald-850{% else %}bg-amber-950 bg-opacity-50 text-amber-400 border border-amber-850{% endif %}">
+                    DB: {{ active_db }}
+                </span>
                 <span class="text-xs px-2.5 py-1 rounded-full bg-cyan-950 bg-opacity-50 text-cyan-400 border border-cyan-850">
-                    Storage: {% if settings.DEFAULT_FILE_STORAGE == 'django.core.files.storage.FileSystemStorage' %}Local{% else %}Azure Blobs{% endif %}
+                    Storage: {{ storage_type }}
                 </span>
             </div>
         </header>
 
         <!-- Dynamic Content -->
         <div class="flex-1 p-4 md:p-8">
+            <!-- Debug Database Mode Banner -->
+            {% if debug_mode %}
+                <div class="mb-6 p-3 rounded-xl border flex items-center justify-between text-xs {% if is_oracle_db %}bg-emerald-950 bg-opacity-35 text-emerald-300 border-emerald-900{% else %}bg-amber-950 bg-opacity-35 text-amber-300 border-amber-900{% endif %}">
+                    <div class="flex items-center space-x-2">
+                        <span class="flex h-2 w-2 relative">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full {% if is_oracle_db %}bg-emerald-400{% else %}bg-amber-400{% endif %} opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 {% if is_oracle_db %}bg-emerald-500{% else %}bg-amber-500{% endif %}"></span>
+                        </span>
+                        <span>
+                            <strong>Modo Desarrollo (DEBUG=True) activo.</strong> 
+                            Base de datos activa: <span class="font-mono underline">{{ active_db }}</span>.
+                            {% if not is_oracle_db %}
+                                (Usando SQLite local porque no se detectaron credenciales de Oracle OCI).
+                            {% else %}
+                                (Conectado a Oracle Autonomous Database en la nube).
+                            {% endif %}
+                        </span>
+                    </div>
+                    <a href="{% url 'db_diagnostic' %}" class="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg text-slate-300 transition text-[10px] font-semibold uppercase tracking-wider">
+                        Diagnóstico
+                    </a>
+                </div>
+            {% endif %}
+
             <!-- Messages / Feedback to user -->
             {% if messages %}
                 <div class="mb-6 space-y-2">

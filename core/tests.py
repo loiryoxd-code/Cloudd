@@ -109,3 +109,33 @@ class SecurityTestCase(TestCase):
         import hashlib
         expected_hash = hashlib.sha256(b"my_file_data_here").hexdigest()
         self.assertEqual(doc.file_hash, expected_hash)
+
+    def test_db_diagnostic_accessible_in_debug(self):
+        """Verify that db-diagnostic page is accessible to admin when DEBUG=True."""
+        self.client.force_login(self.admin_user)
+        with self.settings(DEBUG=True):
+            response = self.client.get(reverse('db_diagnostic'))
+            self.assertEqual(response.status_code, 200)
+            self.assertContains(response, "Diagnóstico de Base de Datos")
+
+    def test_db_diagnostic_forbidden_in_production(self):
+        """Verify that db-diagnostic page is forbidden even to admin when DEBUG=False."""
+        self.client.force_login(self.admin_user)
+        with self.settings(DEBUG=False):
+            response = self.client.get(reverse('db_diagnostic'))
+            self.assertEqual(response.status_code, 403)
+
+    def test_db_diagnostic_forbidden_for_standard_user(self):
+        """Verify that a standard user cannot access the diagnostic page even in debug."""
+        self.client.force_login(self.standard_user)
+        with self.settings(DEBUG=True):
+            response = self.client.get(reverse('db_diagnostic'))
+            self.assertEqual(response.status_code, 403)
+
+    def test_db_diagnostic_redirects_unauthenticated(self):
+        """Verify that unauthenticated requests redirect to login."""
+        with self.settings(DEBUG=True):
+            response = self.client.get(reverse('db_diagnostic'))
+            self.assertEqual(response.status_code, 302)
+
+

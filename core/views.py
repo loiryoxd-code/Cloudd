@@ -226,3 +226,70 @@ def admin_users_view(request):
         'users_list': users
     }
     return render(request, 'admin_users.html', context)
+
+
+# 9. Database & Authentication Diagnostic View (Only in DEBUG mode and protected by Staff/Admin)
+@login_required
+def db_diagnostic_view(request):
+    import os
+    if not settings.DEBUG:
+        raise PermissionDenied("El diagnóstico de base de datos solo está disponible en modo DEBUG.")
+        
+    # Check authorization (requires superuser, staff, or admin profile role)
+    if not (request.user.is_staff or request.user.is_superuser or (hasattr(request.user, 'profile') and request.user.profile.role == 'admin')):
+        raise PermissionDenied("No tienes permisos suficientes para acceder a este panel de diagnóstico.")
+        
+    db_config = settings.DATABASES.get('default', {})
+    db_engine = db_config.get('ENGINE', 'Desconocido')
+    db_name = db_config.get('NAME', 'Desconocido')
+    
+    # Try to test connection
+    from django.db import connection
+    db_connected = False
+    db_error = None
+    try:
+        connection.ensure_connection()
+        db_connected = True
+    except Exception as e:
+        db_error = str(e)
+        
+    # Read environment variables status
+    env_keys = ['OCI_DB_NAME', 'OCI_DB_USER', 'OCI_DB_PASSWORD', 'OCI_WALLET_DIR', 'OCI_WALLET_PASSWORD']
+    env_vars = {}
+    for key in env_keys:
+        val = os.getenv(key)
+        if val:
+            if 'PASSWORD' in key:
+                masked = val[:2] + "****" + val[-2:] if len(val) > 4 else "****"
+                env_vars[key] = {'defined': True, 'value': masked}
+            else:
+                env_vars[key] = {'defined': True, 'value': val}
+        else:
+            env_vars[key] = {'defined': False, 'value': ''}
+            
+    # List users in the database
+    users = User.objects.all().order_by('id')
+    users_list = []
+    for u in users:
+        role = u.profile.role if hasattr(u, 'profile') else 'Sin Perfil'
+        users_list.append({
+            'id': u.id,
+            'username': u.username,
+            'email': u.email,
+            'profile_role': role,
+            'is_superuser': u.is_superuser,
+            'is_active': u.is_active,
+            'last_login': u.last_login,
+        })
+        
+    context = {
+        'db_engine': db_engine,
+        'db_name': db_name,
+        'db_connected': db_connected,
+        'db_error': db_error,
+        'env_vars': env_vars,
+        'auth_backends': settings.AUTHENTICATION_BACKENDS,
+        'users_list': users_list,
+    }
+    return render(request, 'db_diagnostic.html', context)
+
