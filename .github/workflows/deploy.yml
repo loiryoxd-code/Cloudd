@@ -1,4 +1,4 @@
-name: Deploy Django to EC2
+name: Django CI/CD
 
 on:
   push:
@@ -6,11 +6,11 @@ on:
       - main
 
 jobs:
-  deploy:
+  build-test-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -23,11 +23,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Django check
-        run: python manage.py check
+      - name: Run Django check
         env:
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
           DEBUG: "False"
+        run: |
+          python manage.py check
 
       - name: Copy project to EC2
         uses: appleboy/scp-action@v0.1.7
@@ -35,15 +36,17 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
           source: "."
           target: "/home/ubuntu/Cloudd"
 
-      - name: Run deploy commands on EC2
+      - name: Deploy on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          port: 22
           script: |
             cd /home/ubuntu/Cloudd
             python3 -m venv venv || true
