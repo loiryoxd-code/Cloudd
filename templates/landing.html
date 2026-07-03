@@ -18,12 +18,18 @@
             SecureDocs es un portal seguro diseñado específicamente para albergar archivos sensibles, con almacenamiento en Azure Blobs, base de datos preparada para OCI Autonomous y cumplimiento visible de seguridad OWASP.
         </p>
         <div class="pt-4 flex justify-center space-x-4">
-            <a href="{% url 'register' %}" class="px-8 py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 font-semibold text-white shadow-lg transition duration-200">
-                Crear Cuenta Segura
-            </a>
             <a href="{% url 'login' %}" class="px-8 py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 font-semibold text-gray-200 border border-slate-700 transition duration-200">
                 Iniciar Sesión
             </a>
+            <a href="{% url 'register' %}" class="px-8 py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 font-semibold text-white shadow-lg transition duration-200">
+                Crear Cuenta Segura
+            </a>
+            <button onclick="triggerGitHubCDToast()" class="px-8 py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-650 hover:from-emerald-500 hover:to-teal-600 font-semibold text-white border border-emerald-500 border-opacity-30 shadow-lg flex items-center space-x-2 transition duration-200 transform hover:scale-[1.02] focus:outline-none">
+                <svg class="w-5 h-5 text-emerald-300" fill="currentColor" viewBox="0 0 24 24">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.464-1.11-1.464-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.294 2.747-1.025 2.747-1.025.546 1.377.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.579.688.481C19.137 20.162 22 16.418 22 12c0-5.523-4.477-10-10-10z"/>
+                </svg>
+                <span>Verificar CD</span>
+            </button>
         </div>
     </div>
 
@@ -75,4 +81,44 @@
         </a>
     </div>
 </div>
+
+<!-- Beautiful Custom Toast Notification -->
+<div id="github-cd-toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="glass-panel border-emerald-500 border-opacity-40 rounded-2xl p-4 flex items-center space-x-3 shadow-2xl">
+        <div class="w-10 h-10 rounded-xl bg-emerald-950 bg-opacity-60 flex items-center justify-center border border-emerald-850 animate-pulse">
+            <svg class="w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+        </div>
+        <div>
+            <p class="text-xs text-emerald-400 font-semibold tracking-wide uppercase">GitHub CI/CD Integration</p>
+            <p class="text-sm text-gray-200 font-medium">agregado gracias al CD git hub!</p>
+        </div>
+        <button onclick="hideGitHubCDToast()" class="text-gray-400 hover:text-white transition pl-2 focus:outline-none">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+    </div>
+</div>
+
+<script>
+    let toastTimeout;
+    function triggerGitHubCDToast() {
+        const toast = document.getElementById('github-cd-toast');
+        toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+        toast.classList.add('translate-y-0', 'opacity-100');
+        
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => {
+            hideGitHubCDToast();
+        }, 4000);
+    }
+    
+    function hideGitHubCDToast() {
+        const toast = document.getElementById('github-cd-toast');
+        toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+        toast.classList.remove('translate-y-0', 'opacity-100');
+    }
+</script>
 {% endblock %}
